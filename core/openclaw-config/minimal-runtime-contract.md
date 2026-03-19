@@ -10,13 +10,13 @@ It describes what an external OpenClaw runtime must provide in order to load the
 
 The current minimal contract depends on:
 
-- [openclaw.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/openclaw-config/openclaw.example.json)
-- [agent-defaults-snippet.json5](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/openclaw-config/agent-defaults-snippet.json5)
-- [lingzhu-system-prompt.txt](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/openclaw-config/lingzhu-system-prompt.txt)
-- [../workspace/AGENTS.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/workspace/AGENTS.md)
-- [../workspace/MEMORY.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/workspace/MEMORY.md)
-- [../workspace/OUTBOUND_POLICY.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/workspace/OUTBOUND_POLICY.md)
-- [../plugins/lingzhu-bridge/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/plugins/lingzhu-bridge/README.md)
+- [openclaw.example.json](./openclaw.example.json)
+- [agent-defaults-snippet.json5](./agent-defaults-snippet.json5)
+- [lingzhu-system-prompt.txt](./lingzhu-system-prompt.txt)
+- [../workspace/AGENTS.md](../workspace/AGENTS.md)
+- [../workspace/MEMORY.md](../workspace/MEMORY.md)
+- [../workspace/OUTBOUND_POLICY.md](../workspace/OUTBOUND_POLICY.md)
+- [../plugins/lingzhu-bridge/README.md](../plugins/lingzhu-bridge/README.md)
 
 ## External Runtime Assumptions
 
@@ -45,17 +45,22 @@ When the current contract is satisfied, the release-side minimal core should pro
 This contract does not yet guarantee:
 
 - packaged runtime installation
-- one-click local bootstrap
 - bundled module loading
 - production secrets management
 - service orchestration
+
+## Local Bootstrap Companion
+
+The release tree now also provides a generated local runtime pack path through:
+
+- [../../deploy/mira-openclaw/README.md](/Users/thomasjwang/Documents/GitHub/Mira/deploy/mira-openclaw/README.md)
 
 ## Matching Paths
 
 Operator-facing path:
 
-- [../../deploy/core/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/core/README.md)
+- [../../deploy/core/README.md](../../deploy/core/README.md)
 
 Example path:
 
-- [../../examples/minimal-core/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/minimal-core/README.md)
+- [../../examples/minimal-core/README.md](../../examples/minimal-core/README.md)

@@ -40,7 +40,7 @@ test("exportReleaseRepo copies a release tree and excludes local-only artifacts"
   writeFileSync(join(sourceDir, "core", "openclaw-config", "minimal-runtime-contract.md"), "# contract\n");
   writeFileSync(join(sourceDir, "modules", "home-assistant", "config", "home-assistant-module.example.json"), "{}\n");
   writeFileSync(join(sourceDir, "modules", "home-assistant", "docs", "module-runtime-contract.md"), "# module\n");
-  writeFileSync(join(sourceDir, "core", "plugins", "lingzhu-bridge", "package.json"), "{\"name\":\"@mira-release/lingzhu-bridge-core\"}\n");
+  writeFileSync(join(sourceDir, "core", "plugins", "lingzhu-bridge", "package.json"), "{\"name\":\"@mira-release/lingzhu\"}\n");
   writeFileSync(join(sourceDir, "modules", "home-assistant", "plugin", "package.json"), "{\"name\":\"@mira-release/home-assistant-module-plugin\"}\n");
   writeFileSync(join(sourceDir, "modules", "home-assistant", "plugin", "tsconfig.json"), "{}\n");
   writeFileSync(join(sourceDir, "services", "notification-router", "package.json"), "{\"name\":\"@mira-release/notification-router\"}\n");

@@ -20,6 +20,7 @@ const REQUIRED_FILES = [
   "deploy/deploy-paths-overview.md",
   "core/openclaw-config/openclaw.example.json",
   "core/openclaw-config/minimal-runtime-contract.md",
+  "core/plugins/lingzhu-bridge/openclaw.plugin.json",
   "modules/home-assistant/config/home-assistant-module.example.json",
   "modules/home-assistant/docs/module-runtime-contract.md",
   "services/notification-router/package.json",
@@ -29,6 +30,7 @@ const REQUIRED_FILES = [
 const JSON_FILES = [
   "package.json",
   "core/openclaw-config/openclaw.example.json",
+  "core/plugins/lingzhu-bridge/openclaw.plugin.json",
   "modules/home-assistant/config/home-assistant-module.example.json",
   "modules/home-assistant/registry/devices.example.json",
   "core/plugins/lingzhu-bridge/package.json",
@@ -45,6 +47,11 @@ const RELEASE_PACKAGES = [
   "services/notification-router/package.json"
 ];
 
+const SKIPPED_WALK_DIRECTORIES = new Set([
+  ".git",
+  ".mira-runtime"
+]);
+
 const EXPECTED_LICENSE = "AGPL-3.0-only";
 
 const LICENSED_PACKAGES = [
@@ -56,6 +63,9 @@ const LICENSED_PACKAGES = [
 
 function walk(rootDir, predicate, results = [], currentDir = rootDir) {
   for (const entry of readdirSync(currentDir)) {
+    if (SKIPPED_WALK_DIRECTORIES.has(entry)) {
+      continue;
+    }
     const fullPath = join(currentDir, entry);
     const relPath = relative(rootDir, fullPath);
     const stats = statSync(fullPath);
@@ -107,6 +117,38 @@ export function collectReleaseVerification(rootDir = DEFAULT_ROOT) {
     }
   }
 
+  const lingzhuPluginPackage = loadJson(rootDir, "core/plugins/lingzhu-bridge/package.json");
+  const lingzhuOpenClawExtensions = lingzhuPluginPackage.openclaw?.extensions;
+  const badOpenClawPluginMetadata = [];
+  if (
+    !Array.isArray(lingzhuOpenClawExtensions)
+    || !lingzhuOpenClawExtensions.includes("./src/index.ts")
+  ) {
+    badOpenClawPluginMetadata.push({
+      file: "core/plugins/lingzhu-bridge/package.json",
+      message: "missing openclaw.extensions entry for ./src/index.ts"
+    });
+  }
+
+  const lingzhuPluginManifestPath = join(rootDir, "core/plugins/lingzhu-bridge/openclaw.plugin.json");
+  if (existsSync(lingzhuPluginManifestPath)) {
+    try {
+      const lingzhuPluginManifest = loadJson(rootDir, "core/plugins/lingzhu-bridge/openclaw.plugin.json");
+      const lingzhuPackageLeafName =
+        typeof lingzhuPluginPackage.name === "string"
+          ? lingzhuPluginPackage.name.split("/").at(-1)
+          : null;
+      if (lingzhuPackageLeafName !== lingzhuPluginManifest.id) {
+        badOpenClawPluginMetadata.push({
+          file: "core/plugins/lingzhu-bridge/package.json",
+          message: `package name leaf must align with plugin id '${lingzhuPluginManifest.id}'`
+        });
+      }
+    } catch {
+      // invalid-json-files already records malformed plugin manifests
+    }
+  }
+
   const forbiddenArtifacts = walk(
     rootDir,
     (relPath, stats) =>
@@ -119,12 +161,14 @@ export function collectReleaseVerification(rootDir = DEFAULT_ROOT) {
     invalidJson,
     badPackageNames,
     badLicenseMetadata,
+    badOpenClawPluginMetadata,
     forbiddenArtifacts,
     ok:
       missingFiles.length === 0 &&
       invalidJson.length === 0 &&
       badPackageNames.length === 0 &&
       badLicenseMetadata.length === 0 &&
+      badOpenClawPluginMetadata.length === 0 &&
       forbiddenArtifacts.length === 0
   };
 }
@@ -138,6 +182,7 @@ export function formatReleaseVerification(result) {
   lines.push(`invalid-json-files: ${result.invalidJson.length}`);
   lines.push(`bad-package-names: ${result.badPackageNames.length}`);
   lines.push(`bad-license-metadata: ${result.badLicenseMetadata.length}`);
+  lines.push(`bad-openclaw-plugin-metadata: ${result.badOpenClawPluginMetadata.length}`);
   lines.push(`forbidden-artifacts: ${result.forbiddenArtifacts.length}`);
 
   if (result.missingFiles.length > 0) {
@@ -158,6 +203,13 @@ export function formatReleaseVerification(result) {
   if (result.badLicenseMetadata.length > 0) {
     lines.push(`bad-license-metadata:`);
     for (const item of result.badLicenseMetadata) lines.push(`- ${item.file}: ${item.license}`);
+  }
+
+  if (result.badOpenClawPluginMetadata.length > 0) {
+    lines.push(`bad-openclaw-plugin-metadata:`);
+    for (const item of result.badOpenClawPluginMetadata) {
+      lines.push(`- ${item.file}: ${item.message}`);
+    }
   }
 
   if (result.forbiddenArtifacts.length > 0) {

@@ -32,6 +32,21 @@ The current ordered onboarding path is:
 - [readme/00-overview/getting-started.md](./readme/00-overview/getting-started.md)
 - [deploy/deploy-paths-overview.md](./deploy/deploy-paths-overview.md)
 
+For root-level local bootstrap entrypoints:
+
+```bash
+npm run bootstrap:notification-router
+npm run bootstrap:mira-openclaw
+```
+
+Local verification companions:
+
+```bash
+npm run health:notification-router
+npm run self-check:notification-router
+npm run doctor:mira-openclaw
+```
+
 That page compares the three currently real paths:
 
 - `minimal-core`
@@ -54,6 +69,11 @@ What already exists in this release tree:
 - the first home-stack onboarding path
 - a first Git-ready release baseline document
 - an open-source readiness checklist
+- root-level local runtime pack generators for `notification-router` and `mira-openclaw`
+- a local loopback self-check path for `notification-router`
+- a repo-local OpenClaw bootstrap path that installs the bundled `lingzhu` plugin shell without mutating global OpenClaw config
+- a repo-local OpenClaw startup default that binds Mira to port `18890` instead of assuming the global OpenClaw gateway port is free
+- an integrated `start:mira-openclaw` path that auto-starts and auto-stops the generated `notification-router` sidecar
 
 What is not fully migrated yet:
 

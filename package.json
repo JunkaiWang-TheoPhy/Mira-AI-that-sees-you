@@ -11,6 +11,14 @@
   "scripts": {
     "verify:release": "node scripts/verify-release.mjs",
     "test:release": "node --test scripts/__tests__/*.test.mjs",
-    "export:repo": "node scripts/export-release-repo.mjs"
+    "export:repo": "node scripts/export-release-repo.mjs",
+    "bootstrap:notification-router": "node scripts/notification-router-runtime.mjs bootstrap",
+    "doctor:notification-router": "node scripts/notification-router-runtime.mjs doctor",
+    "start:notification-router": "node scripts/notification-router-runtime.mjs start",
+    "health:notification-router": "node scripts/notification-router-runtime.mjs health",
+    "self-check:notification-router": "node scripts/notification-router-runtime.mjs self-check",
+    "bootstrap:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs bootstrap",
+    "doctor:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs doctor",
+    "start:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs start"
   }
 }

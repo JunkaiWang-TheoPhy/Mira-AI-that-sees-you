@@ -56,6 +56,15 @@ export function createNotificationRouterServer(
         return;
       }
 
+      if (req.method === "POST" && url.pathname === "/__local__/dm") {
+        writeJson(res, 202, {
+          ok: true,
+          id: "mira-local-loopback",
+          channel: "openclaw_channel_dm",
+        });
+        return;
+      }
+
       writeJson(res, 404, { ok: false, error: "not found" });
     } catch (error) {
       writeJson(res, 500, {

@@ -41,7 +41,7 @@ test("collectReleaseVerification fails when a release package name is outside th
     "services/notification-router/docs/runtime-contract.md": "# x\n",
     "package.json": "{\"name\":\"mira-released-version\",\"license\":\"AGPL-3.0-only\"}\n",
     "modules/home-assistant/registry/devices.example.json": "{}\n",
-    "core/plugins/lingzhu-bridge/package.json": "{\"name\":\"@mira-release/lingzhu-bridge-core\",\"license\":\"AGPL-3.0-only\"}\n",
+    "core/plugins/lingzhu-bridge/package.json": "{\"name\":\"@mira-release/lingzhu\",\"license\":\"AGPL-3.0-only\"}\n",
     "modules/home-assistant/plugin/package.json": "{\"name\":\"bad-package\",\"license\":\"AGPL-3.0-only\"}\n",
     "modules/home-assistant/plugin/tsconfig.json": "{}\n",
     "services/notification-router/package.json": "{\"name\":\"@mira-release/notification-router\",\"license\":\"AGPL-3.0-only\"}\n",
@@ -83,7 +83,7 @@ test("collectReleaseVerification fails when release package license metadata is 
     "services/notification-router/docs/runtime-contract.md": "# x\n",
     "package.json": "{\"name\":\"mira-released-version\",\"license\":\"AGPL-3.0-only\"}\n",
     "modules/home-assistant/registry/devices.example.json": "{}\n",
-    "core/plugins/lingzhu-bridge/package.json": "{\"name\":\"@mira-release/lingzhu-bridge-core\",\"license\":\"AGPL-3.0-only\"}\n",
+    "core/plugins/lingzhu-bridge/package.json": "{\"name\":\"@mira-release/lingzhu\",\"license\":\"AGPL-3.0-only\"}\n",
     "modules/home-assistant/plugin/package.json": "{\"name\":\"@mira-release/home-assistant-module-plugin\",\"license\":\"MIT\"}\n",
     "modules/home-assistant/plugin/tsconfig.json": "{}\n",
     "services/notification-router/package.json": "{\"name\":\"@mira-release/notification-router\",\"license\":\"AGPL-3.0-only\"}\n",
@@ -101,4 +101,130 @@ test("collectReleaseVerification fails when release package license metadata is 
   assert.equal(result.ok, false);
   assert.equal(result.badLicenseMetadata.length, 1);
   assert.match(formatReleaseVerification(result), /bad-license-metadata/);
+});
+
+test("collectReleaseVerification ignores generated node_modules under .mira-runtime", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-release-runtime-artifacts-"));
+
+  const files = {
+    "README.md": "# x\n",
+    "CONTRIBUTING.md": "# x\n",
+    "CHANGELOG.md": "# x\n",
+    "LICENSE": "GNU AFFERO GENERAL PUBLIC LICENSE\n",
+    ".gitignore": "node_modules/\n",
+    "docs/migration/source-to-release-mapping.md": "# x\n",
+    "docs/migration/release-baseline.md": "# x\n",
+    "docs/migration/open-source-readiness-checklist.md": "# x\n",
+    "docs/migration/repository-split-readiness.md": "# x\n",
+    "docs/migration/package-and-license-decisions.md": "# x\n",
+    "deploy/deploy-paths-overview.md": "# x\n",
+    "core/openclaw-config/openclaw.example.json": "{}\n",
+    "core/openclaw-config/minimal-runtime-contract.md": "# x\n",
+    "modules/home-assistant/config/home-assistant-module.example.json": "{}\n",
+    "modules/home-assistant/docs/module-runtime-contract.md": "# x\n",
+    "services/notification-router/docs/runtime-contract.md": "# x\n",
+    "package.json": "{\"name\":\"mira-released-version\",\"license\":\"AGPL-3.0-only\"}\n",
+    "modules/home-assistant/registry/devices.example.json": "{}\n",
+    "core/plugins/lingzhu-bridge/package.json": "{\"name\":\"@mira-release/lingzhu\",\"license\":\"AGPL-3.0-only\",\"openclaw\":{\"extensions\":[\"./src/index.ts\"]}}\n",
+    "core/plugins/lingzhu-bridge/openclaw.plugin.json": "{\"id\":\"lingzhu\"}\n",
+    "modules/home-assistant/plugin/package.json": "{\"name\":\"@mira-release/home-assistant-module-plugin\",\"license\":\"AGPL-3.0-only\"}\n",
+    "modules/home-assistant/plugin/tsconfig.json": "{}\n",
+    "services/notification-router/package.json": "{\"name\":\"@mira-release/notification-router\",\"license\":\"AGPL-3.0-only\"}\n",
+    "services/notification-router/package-lock.json": "{\"name\":\"@mira-release/notification-router\",\"packages\":{\"\":{\"name\":\"@mira-release/notification-router\",\"license\":\"AGPL-3.0-only\"}}}\n",
+    "services/notification-router/tsconfig.json": "{}\n",
+    ".mira-runtime/notification-router/node_modules/tsx/package.json": "{\"name\":\"tsx\"}\n"
+  };
+
+  for (const [relPath, contents] of Object.entries(files)) {
+    const file = join(root, relPath);
+    mkdirSync(join(file, ".."), { recursive: true });
+    writeFileSync(file, contents);
+  }
+
+  const result = collectReleaseVerification(root);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.forbiddenArtifacts, []);
+});
+
+test("collectReleaseVerification fails when the Lingzhu OpenClaw plugin metadata is incomplete", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-release-openclaw-plugin-"));
+
+  const files = {
+    "README.md": "# x\n",
+    "CONTRIBUTING.md": "# x\n",
+    "CHANGELOG.md": "# x\n",
+    "LICENSE": "GNU AFFERO GENERAL PUBLIC LICENSE\n",
+    ".gitignore": "node_modules/\n",
+    "docs/migration/source-to-release-mapping.md": "# x\n",
+    "docs/migration/release-baseline.md": "# x\n",
+    "docs/migration/open-source-readiness-checklist.md": "# x\n",
+    "docs/migration/repository-split-readiness.md": "# x\n",
+    "docs/migration/package-and-license-decisions.md": "# x\n",
+    "deploy/deploy-paths-overview.md": "# x\n",
+    "core/openclaw-config/openclaw.example.json": "{}\n",
+    "core/openclaw-config/minimal-runtime-contract.md": "# x\n",
+    "modules/home-assistant/config/home-assistant-module.example.json": "{}\n",
+    "modules/home-assistant/docs/module-runtime-contract.md": "# x\n",
+    "services/notification-router/docs/runtime-contract.md": "# x\n",
+    "package.json": "{\"name\":\"mira-released-version\",\"license\":\"AGPL-3.0-only\"}\n",
+    "modules/home-assistant/registry/devices.example.json": "{}\n",
+    "core/plugins/lingzhu-bridge/package.json": "{\"name\":\"@mira-release/lingzhu\",\"license\":\"AGPL-3.0-only\"}\n",
+    "modules/home-assistant/plugin/package.json": "{\"name\":\"@mira-release/home-assistant-module-plugin\",\"license\":\"AGPL-3.0-only\"}\n",
+    "modules/home-assistant/plugin/tsconfig.json": "{}\n",
+    "services/notification-router/package.json": "{\"name\":\"@mira-release/notification-router\",\"license\":\"AGPL-3.0-only\"}\n",
+    "services/notification-router/package-lock.json": "{\"name\":\"@mira-release/notification-router\",\"packages\":{\"\":{\"name\":\"@mira-release/notification-router\",\"license\":\"AGPL-3.0-only\"}}}\n",
+    "services/notification-router/tsconfig.json": "{}\n"
+  };
+
+  for (const [relPath, contents] of Object.entries(files)) {
+    const file = join(root, relPath);
+    mkdirSync(join(file, ".."), { recursive: true });
+    writeFileSync(file, contents);
+  }
+
+  const result = collectReleaseVerification(root);
+  assert.equal(result.ok, false);
+  assert.match(formatReleaseVerification(result), /openclaw/i);
+});
+
+test("collectReleaseVerification fails when the Lingzhu package name does not align with the plugin id", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-release-openclaw-name-"));
+
+  const files = {
+    "README.md": "# x\n",
+    "CONTRIBUTING.md": "# x\n",
+    "CHANGELOG.md": "# x\n",
+    "LICENSE": "GNU AFFERO GENERAL PUBLIC LICENSE\n",
+    ".gitignore": "node_modules/\n",
+    "docs/migration/source-to-release-mapping.md": "# x\n",
+    "docs/migration/release-baseline.md": "# x\n",
+    "docs/migration/open-source-readiness-checklist.md": "# x\n",
+    "docs/migration/repository-split-readiness.md": "# x\n",
+    "docs/migration/package-and-license-decisions.md": "# x\n",
+    "deploy/deploy-paths-overview.md": "# x\n",
+    "core/openclaw-config/openclaw.example.json": "{}\n",
+    "core/openclaw-config/minimal-runtime-contract.md": "# x\n",
+    "core/plugins/lingzhu-bridge/openclaw.plugin.json": "{\"id\":\"lingzhu\"}\n",
+    "modules/home-assistant/config/home-assistant-module.example.json": "{}\n",
+    "modules/home-assistant/docs/module-runtime-contract.md": "# x\n",
+    "services/notification-router/docs/runtime-contract.md": "# x\n",
+    "package.json": "{\"name\":\"mira-released-version\",\"license\":\"AGPL-3.0-only\"}\n",
+    "modules/home-assistant/registry/devices.example.json": "{}\n",
+    "core/plugins/lingzhu-bridge/package.json": "{\"name\":\"@mira-release/lingzhu-bridge-core\",\"license\":\"AGPL-3.0-only\",\"openclaw\":{\"extensions\":[\"./src/index.ts\"]}}\n",
+    "modules/home-assistant/plugin/package.json": "{\"name\":\"@mira-release/home-assistant-module-plugin\",\"license\":\"AGPL-3.0-only\"}\n",
+    "modules/home-assistant/plugin/tsconfig.json": "{}\n",
+    "services/notification-router/package.json": "{\"name\":\"@mira-release/notification-router\",\"license\":\"AGPL-3.0-only\"}\n",
+    "services/notification-router/package-lock.json": "{\"name\":\"@mira-release/notification-router\",\"packages\":{\"\":{\"name\":\"@mira-release/notification-router\",\"license\":\"AGPL-3.0-only\"}}}\n",
+    "services/notification-router/tsconfig.json": "{}\n"
+  };
+
+  for (const [relPath, contents] of Object.entries(files)) {
+    const file = join(root, relPath);
+    mkdirSync(join(file, ".."), { recursive: true });
+    writeFileSync(file, contents);
+  }
+
+  const result = collectReleaseVerification(root);
+  assert.equal(result.ok, false);
+  assert.match(formatReleaseVerification(result), /align/i);
 });

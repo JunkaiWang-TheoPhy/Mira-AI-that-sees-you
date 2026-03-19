@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { afterEach } from "node:test";
@@ -68,6 +69,36 @@ async function createWebhookReceiver() {
     requests,
     url: `http://127.0.0.1:${address.port}/hook`,
   };
+}
+
+async function reservePort() {
+  const server = createServer();
+
+  await new Promise<void>((resolvePromise, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", reject);
+      resolvePromise();
+    });
+  });
+
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("failed to reserve a loopback port");
+  }
+
+  const port = address.port;
+  await new Promise<void>((resolvePromise, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolvePromise();
+    });
+  });
+
+  return port;
 }
 
 test("release-side router can load an outbound policy from YAML and block a self checkin", async () => {
@@ -143,4 +174,61 @@ rules:
   assert.equal(body.decision.matchedRule, "block_self_checkin");
   assert.equal(body.delivery.delivery_status, "blocked");
   assert.equal(receiver.requests.length, 0);
+});
+
+test("release-side router exposes a local loopback DM endpoint for self-checks", async () => {
+  const port = await reservePort();
+  const router = createNotificationRouterServer({
+    channels: {
+      openclaw_channel_dm: {
+        kind: "webhook",
+        url: "http://127.0.0.1:$PORT/__local__/dm",
+        secret: "mira-local-loopback",
+      },
+    },
+  });
+  await router.listen(port);
+  closers.push(() => router.close());
+
+  const previousPort = process.env.PORT;
+  process.env.PORT = String(port);
+  closers.push(async () => {
+    if (previousPort === undefined) {
+      delete process.env.PORT;
+      return;
+    }
+    process.env.PORT = previousPort;
+  });
+
+  const response = await fetch(`${router.baseUrl}/v1/dispatch`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      intent: {
+        intent_id: "local-loopback-001",
+        created_at: "2026-03-19T13:05:00.000Z",
+        source: "manual",
+        message_kind: "checkin",
+        recipient_scope: "self",
+        risk_tier: "low",
+        privacy_level: "private",
+        content: "Loopback self-check.",
+        preferred_channels: ["openclaw_channel_dm"],
+        recipient: {
+          id: "user-self",
+        },
+        known_recipient: true,
+        quiet_hours_active: false,
+      },
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.delivery.delivery_status, "sent");
+  assert.equal(body.delivery.channel, "openclaw_channel_dm");
+  assert.equal(body.delivery.external_message_id, "mira-local-loopback");
 });

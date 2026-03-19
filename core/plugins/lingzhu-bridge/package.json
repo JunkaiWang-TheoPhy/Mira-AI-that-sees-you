@@ -1,8 +1,13 @@
 {
-  "name": "@mira-release/lingzhu-bridge-core",
+  "name": "@mira-release/lingzhu",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
   "scripts": {
     "test": "tsx --test tests/*.test.mts"
   },

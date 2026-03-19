@@ -28,76 +28,86 @@ This directory now documents the minimal release-side startup path for the first
 
 Unified deploy comparison:
 
-- [../deploy-paths-overview.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/deploy-paths-overview.md)
+- [../deploy-paths-overview.md](../deploy-paths-overview.md)
 
 ## Minimal Local Run
 
+Fastest root-level path:
+
+```bash
+npm run bootstrap:notification-router
+npm run start:notification-router
+npm run health:notification-router
+npm run self-check:notification-router
+```
+
 Expected source package:
 
-- [package.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/services/notification-router/package.json)
-- [src/server.ts](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/services/notification-router/src/server.ts)
+- [package.json](../../services/notification-router/package.json)
+- [src/server.ts](../../services/notification-router/src/server.ts)
 
 Expected configuration references:
 
-- [config/env.example](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/services/notification-router/config/env.example)
-- [config/outbound-policy.example.yaml](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/services/notification-router/config/outbound-policy.example.yaml)
-- [env.example](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/service-notification-router/env.example)
-- [start-local.sh](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/service-notification-router/start-local.sh)
-- [check-health.sh](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/service-notification-router/check-health.sh)
-- [dispatch-self-checkin.sh](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/service-notification-router/dispatch-self-checkin.sh)
+- [config/env.example](../../services/notification-router/config/env.example)
+- [config/outbound-policy.example.yaml](../../services/notification-router/config/outbound-policy.example.yaml)
+- [env.example](./env.example)
+- [start-local.sh](./start-local.sh)
+- [check-health.sh](./check-health.sh)
+- [dispatch-self-checkin.sh](./dispatch-self-checkin.sh)
 
-Current minimal run model:
+Current root-level runtime-pack model:
 
-1. enter the service directory
-2. provide DM and/or email environment variables
-3. optionally point the service at a YAML policy file
-4. run local tests
-5. start the server with a TypeScript-capable Node workflow
-6. verify `GET /v1/health`
-7. dispatch a low-risk self check-in through `POST /v1/dispatch`
+1. run `npm run bootstrap:notification-router`
+2. let the bootstrap generate `.mira-runtime/notification-router/.env.local`
+3. optionally edit that env file for real DM or email providers
+4. run `npm run start:notification-router`
+5. verify `GET /v1/health`
+6. dispatch a low-risk self check-in through `POST /v1/dispatch`
 
 Example install:
 
 ```bash
-cd Mira_Released_Version/services/notification-router
+cd services/notification-router
 npm install
 ```
 
 Example deploy-pack environment:
 
 ```bash
-cd Mira_Released_Version/deploy/service-notification-router
+cd deploy/service-notification-router
 cp env.example .env.local
 ```
 
 Example startup:
 
 ```bash
-cd Mira_Released_Version/deploy/service-notification-router
-./start-local.sh
+npm run start:notification-router
 ```
 
 Health check:
 
 ```bash
-cd Mira_Released_Version/deploy/service-notification-router
-./check-health.sh
+npm run health:notification-router
 ```
 
 Sample self check-in dispatch:
 
 ```bash
-cd Mira_Released_Version/deploy/service-notification-router
-./dispatch-self-checkin.sh
+npm run self-check:notification-router
 ```
+
+Local self-check default:
+
+- the generated `.env.local` rewrites the DM webhook to `http://127.0.0.1:$PORT/__local__/dm`
+- `npm run self-check:notification-router` therefore works out of the box for local verification without an external OpenClaw DM webhook
 
 Current limitations:
 
 - this is still a source-first development path, not yet a production packaging guide
 - deploy packaging, secrets management, and container/runtime manifests are still out of scope for this first pass
-- the local startup script expects `npm install` to have been run in `services/notification-router`
-- the sample dispatch path assumes a reachable DM webhook if `openclaw_channel_dm` is selected
+- the generated runtime pack still expects operator review of `.mira-runtime/notification-router/.env.local`
+- real outbound delivery still requires replacing the loopback DM default with a reachable provider endpoint
 
 The release-side composition example that connects this deploy path back to Mira core lives at:
 
-- [examples/service-notification-router/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/service-notification-router/README.md)
+- [examples/service-notification-router/README.md](../../examples/service-notification-router/README.md)

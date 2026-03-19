@@ -19,11 +19,20 @@ function extractExternalMessageId(body: unknown) {
   return undefined;
 }
 
+function resolveWebhookUrl(url: string) {
+  const port = process.env.PORT?.trim();
+  if (!port) {
+    return url;
+  }
+
+  return url.replaceAll("$PORT", port);
+}
+
 export async function dispatchOpenClawChannelDm(
   intent: OutboundMessageIntent,
   config: NotificationRouterWebhookChannelConfig,
 ): Promise<ChannelDeliveryResult> {
-  const response = await fetch(config.url, {
+  const response = await fetch(resolveWebhookUrl(config.url), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

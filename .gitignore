@@ -1,4 +1,5 @@
 .DS_Store
+.mira-runtime/
 **/node_modules/
 **/.env
 **/.env.local

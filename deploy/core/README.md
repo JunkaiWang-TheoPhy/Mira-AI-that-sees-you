@@ -26,17 +26,21 @@ This directory will hold deployment notes for the smallest Mira core runtime.
 
 This directory now marks the first concrete deploy path for a core-only release setup.
 
+The automated local pack companion now lives at:
+
+- [../mira-openclaw/README.md](../mira-openclaw/README.md)
+
 Unified deploy comparison:
 
-- [../deploy-paths-overview.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/deploy-paths-overview.md)
+- [../deploy-paths-overview.md](../deploy-paths-overview.md)
 
 ## Minimal Core Deploy Inputs
 
 Use these two files together:
 
-- [core/openclaw-config/openclaw.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/openclaw-config/openclaw.example.json)
-- [env.example](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/core/env.example)
-- [core/plugins/lingzhu-bridge/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/plugins/lingzhu-bridge/README.md)
+- [core/openclaw-config/openclaw.example.json](../../core/openclaw-config/openclaw.example.json)
+- [env.example](./env.example)
+- [core/plugins/lingzhu-bridge/README.md](../../core/plugins/lingzhu-bridge/README.md)
 
 The config example defines:
 
@@ -58,11 +62,20 @@ The env template defines:
 This is the intended order:
 
 1. install and prepare an OpenClaw runtime outside this release tree
-2. copy and adapt [openclaw.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/openclaw-config/openclaw.example.json)
-3. make [core/plugins/lingzhu-bridge](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/plugins/lingzhu-bridge) available to the target OpenClaw runtime
-4. copy and adapt [env.example](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/core/env.example)
-5. point the runtime at [core/workspace](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/core/workspace)
+2. copy and adapt [openclaw.example.json](../../core/openclaw-config/openclaw.example.json)
+3. make [core/plugins/lingzhu-bridge](../../core/plugins/lingzhu-bridge) available to the target OpenClaw runtime
+4. copy and adapt [env.example](./env.example)
+5. point the runtime at [core/workspace](../../core/workspace)
 6. verify the runtime loads Mira core and the release-safe `lingzhu` plugin without any first-party modules
+
+Root-level generated-pack flow:
+
+```bash
+npm run bootstrap:mira-openclaw
+npm run doctor:mira-openclaw
+```
+
+If the local machine already has `openclaw` installed, that generated-pack flow now installs the bundled `lingzhu` plugin shell into a repo-local OpenClaw state dir and validates the generated config through the real CLI.
 
 ## Current Non-Goals
 
