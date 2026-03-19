@@ -232,3 +232,26 @@ test("release-side router exposes a local loopback DM endpoint for self-checks",
   assert.equal(body.delivery.channel, "openclaw_channel_dm");
   assert.equal(body.delivery.external_message_id, "mira-local-loopback");
 });
+
+test("release-side router can bind to 0.0.0.0 for container platforms", async () => {
+  const port = await reservePort();
+  const router = createNotificationRouterServer({
+    host: "0.0.0.0",
+    channels: {
+      openclaw_channel_dm: {
+        kind: "webhook",
+        url: "http://127.0.0.1:3400/hook",
+        secret: "container-host-test",
+      },
+    },
+  });
+  await router.listen(port);
+  closers.push(() => router.close());
+
+  const response = await fetch(`http://127.0.0.1:${port}/v1/health`);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    service: "notification-router",
+  });
+});

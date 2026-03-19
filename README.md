@@ -2,6 +2,7 @@
 
 Mira is a companion-style agent release built on OpenClaw.
 
+
 This directory is the staging root for a standalone public repository that will package Mira as:
 
 - a clean core
@@ -32,6 +33,8 @@ npm run bootstrap
 cp deploy/repo.env.example .env.local
 # edit .env.local
 # keep MIRA_DEPLOY_PROFILE=mira-openclaw for the default integrated stack
+# leave MIRA_OPENCLAW_PROVIDER_API_KEY=replace-me if the host OpenClaw already
+# has a usable default provider; otherwise set a real repo fallback key
 # or set MIRA_DEPLOY_PROFILE=notification-router for router-only
 
 npm start
@@ -72,6 +75,16 @@ The repo-level machine-readable deploy contract now lives at:
 
 - [deploy/repo-manifest.json](./deploy/repo-manifest.json)
 - [deploy/repo.env.example](./deploy/repo.env.example)
+- [Dockerfile](./Dockerfile)
+- [compose.yaml](./compose.yaml)
+- [Procfile](./Procfile)
+- [render.yaml](./render.yaml)
+
+For the integrated `mira-openclaw` profile, provider resolution is now host-first:
+
+- inherit the host OpenClaw default provider when one is already configured
+- fall back to repo `MIRA_OPENCLAW_PROVIDER_*` env values only when the host has no usable default provider
+- fail fast with guidance when neither source is configured
 
 ## Current Status
 
@@ -82,6 +95,7 @@ What already exists in this release tree:
 - a repo-level one-command deploy contract through `npm run bootstrap`, `npm start`, and `npm run deploy`
 - two root-selectable deploy profiles: `mira-openclaw` and `notification-router`
 - a committed machine-readable deploy manifest and root env template
+- a router-first `Dockerfile`, `compose.yaml`, `Procfile`, and `render.yaml` for common URL deployers and container platforms
 - the first-party `Home Assistant` flagship module scaffold
 - a release-oriented device registry example
 - the first `sceneResolver` planning skeleton
@@ -96,9 +110,13 @@ What already exists in this release tree:
 What is not fully migrated yet:
 
 - the remaining non-template `core/` runtime materials outside the current release-safe set
-- container or platform-specific manifests such as `Dockerfile`, `docker-compose.yml`, or `render.yaml`
 - additional modules such as wearable, Apple, printer, and channel integrations
 - most release-side `docs/` and `examples/` contents
+
+Current container/platform scope:
+
+- [Dockerfile](./Dockerfile), [compose.yaml](./compose.yaml), [Procfile](./Procfile), and [render.yaml](./render.yaml) default to the `notification-router` profile
+- the full `mira-openclaw` stack still needs a custom image or host that already provides the `openclaw` CLI
 
 So this directory should be read as:
 

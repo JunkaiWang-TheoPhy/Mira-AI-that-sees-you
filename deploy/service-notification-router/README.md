@@ -41,6 +41,14 @@ To drive the same root-level commands into this service-only profile, set:
 - `MIRA_DEPLOY_PROFILE=notification-router` in the repo root `.env.local`
 - then use `npm start` for a foreground service or `npm run deploy` for detached mode
 
+Platform manifests for this router-first path now live at:
+
+- [../../Dockerfile](../../Dockerfile)
+- [../../compose.yaml](../../compose.yaml)
+- [../../Procfile](../../Procfile)
+- [../../render.yaml](../../render.yaml)
+- [../../.dockerignore](../../.dockerignore)
+
 ## Minimal Local Run
 
 Fastest root-level path:
@@ -54,6 +62,30 @@ npm run start:notification-router
 npm run health:notification-router
 npm run self-check:notification-router
 ```
+
+Container-first path:
+
+```bash
+docker build -t mira-notification-router .
+docker run --rm -p 3302:3302 mira-notification-router
+```
+
+Compose path:
+
+```bash
+docker compose up --build
+```
+
+Procfile-aware path:
+
+- platforms that honor [../../Procfile](../../Procfile) will start `npm start`
+- the procfile forces `MIRA_DEPLOY_PROFILE=notification-router` and `HOST=0.0.0.0`
+
+Render blueprint path:
+
+- commit [../../render.yaml](../../render.yaml)
+- the generated service defaults to `MIRA_DEPLOY_PROFILE=notification-router`
+- `HOST=0.0.0.0` is set so the web service is reachable from the platform edge
 
 Expected source package:
 
@@ -133,10 +165,10 @@ Local self-check default:
 
 Current limitations:
 
-- this is still a source-first development path, not yet a production packaging guide
-- deploy packaging, secrets management, and container/runtime manifests are still out of scope for this first pass
+- this is still a source-first development path, even though router-first container and Render manifests now exist
 - the generated runtime pack still expects operator review of `.mira-runtime/notification-router/.env.local`
 - real outbound delivery still requires replacing the loopback DM default with a reachable provider endpoint
+- the bundled container/runtime manifests target `notification-router`, not the full `mira-openclaw` stack
 
 The release-side composition example that connects this deploy path back to Mira core lives at:
 

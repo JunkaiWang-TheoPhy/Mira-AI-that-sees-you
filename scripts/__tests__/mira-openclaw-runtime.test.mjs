@@ -18,6 +18,13 @@ import {
   upMiraOpenClawRuntime,
 } from "../mira-openclaw-runtime.mjs";
 
+const TEST_MISSING_HOST_CONFIG_PATH = join(
+  tmpdir(),
+  "mira-openclaw-test-missing-host-config.json",
+);
+
+process.env.OPENCLAW_CONFIG_PATH = TEST_MISSING_HOST_CONFIG_PATH;
+
 function writeNotificationRouterFixture(root) {
   mkdirSync(join(root, "services", "notification-router", "src"), { recursive: true });
   mkdirSync(join(root, "services", "notification-router", "config"), { recursive: true });
@@ -166,6 +173,51 @@ function writeMiraFixture(root) {
   );
 }
 
+function writeHostOpenClawConfig(root, {
+  providerId = "host-provider",
+  baseUrl = "https://host.example.com/v1",
+  apiKey = "host-key",
+  api = "openai-responses",
+  modelId = "host-model",
+  modelName = "host-model",
+} = {}) {
+  const hostConfigPath = join(root, "host-openclaw.json");
+  writeFileSync(
+    hostConfigPath,
+    JSON.stringify({
+      models: {
+        mode: "merge",
+        providers: {
+          [providerId]: {
+            baseUrl,
+            apiKey,
+            api,
+            models: [
+              {
+                id: modelId,
+                name: modelName,
+                reasoning: true,
+                input: ["text"],
+                contextWindow: 200000,
+                maxTokens: 8192,
+              },
+            ],
+          },
+        },
+      },
+      agents: {
+        defaults: {
+          model: {
+            primary: `${providerId}/${modelId}`,
+          },
+        },
+      },
+    }, null, 2),
+  );
+
+  return hostConfigPath;
+}
+
 test("bootstrapMiraOpenClawRuntime generates a local runtime pack and config manifest", () => {
   const root = mkdtempSync(join(tmpdir(), "mira-openclaw-runtime-"));
   writeNotificationRouterFixture(root);
@@ -246,10 +298,10 @@ test("inspectMiraOpenClawRuntime reports placeholder secrets and start command g
   const inspection = inspectMiraOpenClawRuntime({ rootDir: root });
   assert.equal(inspection.runtimeDir, result.runtimeDir);
   assert.equal(inspection.ok, false);
-  assert.match(inspection.issues.join("\n"), /API key/);
+  assert.match(inspection.issues.join("\n"), /no usable provider|MIRA_OPENCLAW_PROVIDER_API_KEY/);
   assert.equal(
     inspection.resolvedStartCommand,
-    "/opt/homebrew/bin/openclaw gateway run --allow-unconfigured --port 18890",
+    "/opt/homebrew/bin/openclaw gateway run --port 18890",
   );
 });
 
@@ -339,9 +391,55 @@ test("inspectMiraOpenClawRuntime uses the detected openclaw gateway command when
   assert.equal(inspection.ok, false);
   assert.equal(
     inspection.resolvedStartCommand,
-    "/opt/homebrew/bin/openclaw gateway run --allow-unconfigured --port 18890",
+    "/opt/homebrew/bin/openclaw gateway run --port 18890",
   );
   assert.ok(!inspection.issues.some((issue) => issue.includes("OPENCLAW_START_COMMAND")));
+});
+
+test("bootstrapMiraOpenClawRuntime inherits the host default provider when repo provider env is still placeholder", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-host-provider-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const hostConfigPath = writeHostOpenClawConfig(root, {
+    providerId: "host-provider",
+    apiKey: "host-key",
+    modelId: "host-model",
+    modelName: "host-model",
+  });
+
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+
+  try {
+    process.env.OPENCLAW_CONFIG_PATH = hostConfigPath;
+
+    const result = bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const generatedConfig = JSON.parse(readFileSync(result.configPath, "utf8"));
+    assert.deepEqual(Object.keys(generatedConfig.models.providers), ["host-provider"]);
+    assert.equal(generatedConfig.models.providers["host-provider"].apiKey, "host-key");
+    assert.equal(generatedConfig.agents.defaults.model.primary, "host-provider/host-model");
+
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+    });
+    assert.equal(inspection.ok, true);
+    assert.ok(!inspection.issues.some((issue) => issue.includes("provider")));
+    assert.ok(!inspection.issues.some((issue) => issue.includes("API key")));
+  } finally {
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+  }
 });
 
 test("doctorMiraOpenClawRuntime validates the generated config through openclaw", () => {
@@ -349,44 +447,56 @@ test("doctorMiraOpenClawRuntime validates the generated config through openclaw"
   writeNotificationRouterFixture(root);
   writeMiraFixture(root);
 
-  bootstrapMiraOpenClawRuntime({
-    rootDir: root,
-    runCommand() {
-      return { status: 0, stdout: "", stderr: "" };
-    },
-  });
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
 
-  const calls = [];
-  const result = doctorMiraOpenClawRuntime({
-    rootDir: root,
-    openclawBinary: "/opt/homebrew/bin/openclaw",
-    runCommand(command, args, options) {
-      calls.push({ command, args, options });
-      return {
-        status: 0,
-        stdout: JSON.stringify({ ok: true }),
-        stderr: "",
-      };
-    },
-  });
+  try {
+    process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "test-key";
 
-  assert.equal(result.ok, false);
-  assert.deepEqual(result.configValidation, { ok: true });
-  const validateCall = calls.find(
-    (call) =>
-      call.command === "/opt/homebrew/bin/openclaw"
-      && call.args[0] === "config"
-      && call.args[1] === "validate",
-  );
-  assert.ok(validateCall);
-  assert.equal(
-    validateCall.options.env.OPENCLAW_CONFIG_PATH,
-    join(root, ".mira-runtime", "mira-openclaw", "core", "openclaw-config", "openclaw.local.json"),
-  );
-  assert.equal(
-    validateCall.options.env.OPENCLAW_STATE_DIR,
-    join(root, ".mira-runtime", "mira-openclaw", "openclaw-state"),
-  );
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const calls = [];
+    const result = doctorMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args, options) {
+        calls.push({ command, args, options });
+        return {
+          status: 0,
+          stdout: JSON.stringify({ ok: true }),
+          stderr: "",
+        };
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.configValidation, { ok: true });
+    const validateCall = calls.find(
+      (call) =>
+        call.command === "/opt/homebrew/bin/openclaw"
+        && call.args[0] === "config"
+        && call.args[1] === "validate",
+    );
+    assert.ok(validateCall);
+    assert.equal(
+      validateCall.options.env.OPENCLAW_CONFIG_PATH,
+      join(root, ".mira-runtime", "mira-openclaw", "core", "openclaw-config", "openclaw.local.json"),
+    );
+    assert.equal(
+      validateCall.options.env.OPENCLAW_STATE_DIR,
+      join(root, ".mira-runtime", "mira-openclaw", "openclaw-state"),
+    );
+  } finally {
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+  }
 });
 
 test("startMiraOpenClawRuntime auto-starts the notification-router sidecar before launching OpenClaw", async () => {
@@ -460,6 +570,49 @@ test("startMiraOpenClawRuntime auto-starts the notification-router sidecar befor
     true,
   );
   assert.equal(calls.some((call) => call.type === "stop-router"), true);
+});
+
+test("startMiraOpenClawRuntime fails fast with guidance when neither the host nor repo provide a usable provider", async () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-missing-provider-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousStartCommand = process.env.OPENCLAW_START_COMMAND;
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+
+  try {
+    process.env.OPENCLAW_START_COMMAND = "echo openclaw";
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    process.env.OPENCLAW_CONFIG_PATH = TEST_MISSING_HOST_CONFIG_PATH;
+
+    await assert.rejects(
+      () => startMiraOpenClawRuntime({
+        rootDir: root,
+        openclawBinary: "/opt/homebrew/bin/openclaw",
+        bootstrapRunCommand() {
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      }),
+      /Configure a default provider in host OpenClaw|set MIRA_OPENCLAW_PROVIDER_API_KEY/,
+    );
+  } finally {
+    if (previousStartCommand === undefined) {
+      delete process.env.OPENCLAW_START_COMMAND;
+    } else {
+      process.env.OPENCLAW_START_COMMAND = previousStartCommand;
+    }
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+    if (previousHostConfigPath === undefined) {
+      process.env.OPENCLAW_CONFIG_PATH = TEST_MISSING_HOST_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+  }
 });
 
 test("checkMiraOpenClawHealth reports a healthy integrated stack when gateway and router are both reachable", async () => {
@@ -615,7 +768,7 @@ test("checkMiraOpenClawHealth reports structured failures when the sidecar is un
   }
 });
 
-test("checkMiraOpenClawHealth treats a live stack as healthy even if the current shell lacks the startup API key", async () => {
+test("checkMiraOpenClawHealth is not healthy when the stack has no usable provider even if the gateway process is reachable", async () => {
   const root = mkdtempSync(join(tmpdir(), "mira-openclaw-live-health-"));
   writeNotificationRouterFixture(root);
   writeMiraFixture(root);
@@ -645,8 +798,8 @@ test("checkMiraOpenClawHealth treats a live stack as healthy even if the current
     },
   });
 
-  assert.equal(result.inspection.issues.some((issue) => issue.includes("API key")), true);
-  assert.equal(result.ok, true);
+  assert.equal(result.inspection.issues.some((issue) => issue.includes("provider")), true);
+  assert.equal(result.ok, false);
 });
 
 test("up/status/down mira-openclaw manage a detached integrated-stack supervisor", async () => {

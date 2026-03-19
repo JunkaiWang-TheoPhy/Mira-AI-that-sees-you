@@ -62,6 +62,8 @@ Fastest repo-level path:
 cp deploy/repo.env.example .env.local
 # edit .env.local
 # keep MIRA_DEPLOY_PROFILE=mira-openclaw
+# leave MIRA_OPENCLAW_PROVIDER_API_KEY=replace-me if the host OpenClaw already
+# has a usable default provider; otherwise set a real repo fallback key
 npm start
 ```
 
@@ -77,7 +79,13 @@ The bootstrap copies [env.example](./env.example) into:
 
 - `.mira-runtime/mira-openclaw/.env.local`
 
-Before starting, set at least:
+Provider resolution order is now:
+
+- inherit the host OpenClaw default provider first
+- fall back to the repo `MIRA_OPENCLAW_PROVIDER_*` env values only if the host has no usable default provider
+- fail fast with next-step guidance if neither source is usable
+
+Only set this when you need the repo fallback provider path:
 
 - `MIRA_OPENCLAW_PROVIDER_API_KEY`
 
@@ -91,7 +99,7 @@ Optional overrides:
 Default start behavior:
 
 ```bash
-openclaw gateway run --allow-unconfigured --port 18890
+openclaw gateway run --port 18890
 ```
 
 If `OPENCLAW_START_COMMAND` is unset and a local `openclaw` binary is discoverable, `npm run start:mira-openclaw` falls back to that command automatically.

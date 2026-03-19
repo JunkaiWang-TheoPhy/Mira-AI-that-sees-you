@@ -27,6 +27,11 @@ test("buildRepoDeployManifest describes the repo default entrypoint and both dep
   assert.equal(manifest.defaultCommands.start, "npm start");
   assert.equal(manifest.repoEnvTemplatePath, "deploy/repo.env.example");
   assert.equal(manifest.repoEnvFilePath, ".env.local");
+  assert.equal(manifest.platformManifests.dockerfile, "Dockerfile");
+  assert.equal(manifest.platformManifests.renderBlueprint, "render.yaml");
+  assert.equal(manifest.platformManifests.dockerIgnore, ".dockerignore");
+  assert.equal(manifest.platformManifests.composeFile, "compose.yaml");
+  assert.equal(manifest.platformManifests.procfile, "Procfile");
   assert.equal(
     manifest.profiles["notification-router"].commands.deploy,
     "npm run deploy:notification-router",
@@ -45,7 +50,11 @@ test("buildRepoDeployManifest describes the repo default entrypoint and both dep
   );
   assert.equal(
     manifest.profiles["mira-openclaw"].requiredEnv.includes("MIRA_OPENCLAW_PROVIDER_API_KEY"),
-    true,
+    false,
+  );
+  assert.equal(
+    manifest.profiles["mira-openclaw"].providerResolution.mode,
+    "host-default-or-repo-fallback",
   );
 });
 

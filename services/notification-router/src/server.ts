@@ -6,6 +6,7 @@ import { handleDispatchIntentRequest } from "./routes/dispatchIntent.ts";
 import type { LoadedOutboundPolicy } from "./policy/outboundPolicyTypes.ts";
 
 type NotificationRouterServerOptions = NotificationRouterConfigOverrides & {
+  host?: string;
   outboundPolicy?: LoadedOutboundPolicy;
   outboundPolicyPath?: string | URL;
 };
@@ -33,6 +34,7 @@ export function createNotificationRouterServer(
   options: NotificationRouterServerOptions = {},
 ) {
   const config = loadNotificationRouterConfig(options);
+  const listenHost = options.host ?? process.env.HOST ?? "127.0.0.1";
 
   const server = http.createServer(async (req, res) => {
     try {
@@ -85,7 +87,7 @@ export function createNotificationRouterServer(
     async listen(port: number) {
       await new Promise<void>((resolve, reject) => {
         server.once("error", reject);
-        server.listen(port, "127.0.0.1", () => {
+        server.listen(port, listenHost, () => {
           server.off("error", reject);
           resolve();
         });
@@ -106,14 +108,16 @@ export function createNotificationRouterServer(
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  const host = process.env.HOST ?? "127.0.0.1";
   const port = Number(process.env.PORT ?? 3302);
   const outboundPolicyPath =
     process.env.MIRA_NOTIFICATION_ROUTER_OUTBOUND_POLICY_PATH || undefined;
-  const router = createNotificationRouterServer({ outboundPolicyPath });
+  const router = createNotificationRouterServer({ host, outboundPolicyPath });
   router.listen(port).then(() => {
     console.log(
       JSON.stringify({
         ok: true,
+        host,
         port,
         service: "notification-router",
         outboundPolicyPath: outboundPolicyPath ?? null,

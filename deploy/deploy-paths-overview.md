@@ -19,6 +19,15 @@ Choose this when you want:
 - automatic `notification-router` sidecar startup through the default root commands
 - a standard foreground entrypoint for platforms that assume `npm start`
 
+Platform manifests now committed at the repo root:
+
+- [../Dockerfile](../Dockerfile)
+- [../compose.yaml](../compose.yaml)
+- [../Procfile](../Procfile)
+- [../render.yaml](../render.yaml)
+
+Those manifests default to the `notification-router` profile because that path does not require the `openclaw` CLI inside the container image.
+
 Default root commands:
 
 ```bash

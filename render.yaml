@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: mira-notification-router
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /v1/health
+    envVars:
+      - key: MIRA_DEPLOY_PROFILE
+        value: notification-router
+      - key: HOST
+        value: 0.0.0.0

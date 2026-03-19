@@ -99,6 +99,13 @@ export function buildRepoDeployManifest(rootDir = DEFAULT_ROOT) {
     manifestPath: "deploy/repo-manifest.json",
     repoEnvTemplatePath: "deploy/repo.env.example",
     repoEnvFilePath: ".env.local",
+    platformManifests: {
+      dockerfile: "Dockerfile",
+      dockerIgnore: ".dockerignore",
+      renderBlueprint: "render.yaml",
+      composeFile: "compose.yaml",
+      procfile: "Procfile",
+    },
     profileSelectorEnv: PROFILE_ENV,
     defaultProfile: "mira-openclaw",
     defaultCommands: {
@@ -143,7 +150,27 @@ export function buildRepoDeployManifest(rootDir = DEFAULT_ROOT) {
         runtimeDir: ".mira-runtime/mira-openclaw",
         envTemplatePath: "deploy/mira-openclaw/env.example",
         runtimeManifestPath: ".mira-runtime/mira-openclaw/runtime-manifest.json",
-        requiredEnv: ["MIRA_OPENCLAW_PROVIDER_API_KEY"],
+        requiredEnv: [],
+        providerResolution: {
+          mode: "host-default-or-repo-fallback",
+          hostConfigPathEnv: "OPENCLAW_CONFIG_PATH",
+          fallbackEnv: [
+            "MIRA_OPENCLAW_PROVIDER_API_KEY",
+            "MIRA_OPENCLAW_PROVIDER_ID",
+            "MIRA_OPENCLAW_PROVIDER_BASE_URL",
+            "MIRA_OPENCLAW_PROVIDER_API",
+            "MIRA_OPENCLAW_MODEL_ID",
+            "MIRA_OPENCLAW_MODEL_NAME",
+          ],
+        },
+        optionalEnv: [
+          "MIRA_OPENCLAW_PROVIDER_API_KEY",
+          "MIRA_OPENCLAW_PROVIDER_ID",
+          "MIRA_OPENCLAW_PROVIDER_BASE_URL",
+          "MIRA_OPENCLAW_PROVIDER_API",
+          "MIRA_OPENCLAW_MODEL_ID",
+          "MIRA_OPENCLAW_MODEL_NAME",
+        ],
         commands: {
           bootstrap: "npm run bootstrap:mira-openclaw",
           doctor: "npm run doctor:mira-openclaw",

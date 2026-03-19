@@ -3,6 +3,9 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
+  "engines": {
+    "node": ">=20 <26"
+  },
   "workspaces": [
     "core/plugins/lingzhu-bridge",
     "modules/home-assistant/plugin",
