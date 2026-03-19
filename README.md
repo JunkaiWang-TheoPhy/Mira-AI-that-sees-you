@@ -17,7 +17,9 @@ Current public-repo hygiene companions:
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 - [CHANGELOG.md](./CHANGELOG.md)
 - [package.json](./package.json)
-- [LICENSE.placeholder.md](./LICENSE.placeholder.md)
+- [LICENSE](./LICENSE)
+
+Mira is licensed under the GNU Affero General Public License v3.0. See [LICENSE](./LICENSE).
 
 ## Quick Start
 

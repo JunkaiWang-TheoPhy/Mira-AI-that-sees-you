@@ -10,6 +10,7 @@ const REQUIRED_FILES = [
   "README.md",
   "CONTRIBUTING.md",
   "CHANGELOG.md",
+  "LICENSE",
   ".gitignore",
   "docs/migration/source-to-release-mapping.md",
   "docs/migration/release-baseline.md",
@@ -25,8 +26,6 @@ const REQUIRED_FILES = [
   "services/notification-router/docs/runtime-contract.md"
 ];
 
-const REQUIRED_ALTERNATIVES = [["LICENSE", "LICENSE.placeholder.md"]];
-
 const JSON_FILES = [
   "package.json",
   "core/openclaw-config/openclaw.example.json",
@@ -41,6 +40,15 @@ const JSON_FILES = [
 ];
 
 const RELEASE_PACKAGES = [
+  "core/plugins/lingzhu-bridge/package.json",
+  "modules/home-assistant/plugin/package.json",
+  "services/notification-router/package.json"
+];
+
+const EXPECTED_LICENSE = "AGPL-3.0-only";
+
+const LICENSED_PACKAGES = [
+  "package.json",
   "core/plugins/lingzhu-bridge/package.json",
   "modules/home-assistant/plugin/package.json",
   "services/notification-router/package.json"
@@ -67,11 +75,6 @@ function loadJson(rootDir, relPath) {
 
 export function collectReleaseVerification(rootDir = DEFAULT_ROOT) {
   const missingFiles = REQUIRED_FILES.filter((file) => !existsSync(join(rootDir, file)));
-  for (const alternatives of REQUIRED_ALTERNATIVES) {
-    if (!alternatives.some((file) => existsSync(join(rootDir, file)))) {
-      missingFiles.push(`one-of:${alternatives.join("|")}`);
-    }
-  }
 
   const invalidJson = [];
   for (const file of JSON_FILES) {
@@ -93,6 +96,17 @@ export function collectReleaseVerification(rootDir = DEFAULT_ROOT) {
     }
   }
 
+  const badLicenseMetadata = [];
+  for (const file of LICENSED_PACKAGES) {
+    const pkg = loadJson(rootDir, file);
+    if (pkg.license !== EXPECTED_LICENSE) {
+      badLicenseMetadata.push({
+        file,
+        license: pkg.license ?? null
+      });
+    }
+  }
+
   const forbiddenArtifacts = walk(
     rootDir,
     (relPath, stats) =>
@@ -104,11 +118,13 @@ export function collectReleaseVerification(rootDir = DEFAULT_ROOT) {
     missingFiles,
     invalidJson,
     badPackageNames,
+    badLicenseMetadata,
     forbiddenArtifacts,
     ok:
       missingFiles.length === 0 &&
       invalidJson.length === 0 &&
       badPackageNames.length === 0 &&
+      badLicenseMetadata.length === 0 &&
       forbiddenArtifacts.length === 0
   };
 }
@@ -121,6 +137,7 @@ export function formatReleaseVerification(result) {
   lines.push(`required-files-missing: ${result.missingFiles.length}`);
   lines.push(`invalid-json-files: ${result.invalidJson.length}`);
   lines.push(`bad-package-names: ${result.badPackageNames.length}`);
+  lines.push(`bad-license-metadata: ${result.badLicenseMetadata.length}`);
   lines.push(`forbidden-artifacts: ${result.forbiddenArtifacts.length}`);
 
   if (result.missingFiles.length > 0) {
@@ -136,6 +153,11 @@ export function formatReleaseVerification(result) {
   if (result.badPackageNames.length > 0) {
     lines.push(`bad-package-names:`);
     for (const item of result.badPackageNames) lines.push(`- ${item.file}: ${item.name}`);
+  }
+
+  if (result.badLicenseMetadata.length > 0) {
+    lines.push(`bad-license-metadata:`);
+    for (const item of result.badLicenseMetadata) lines.push(`- ${item.file}: ${item.license}`);
   }
 
   if (result.forbiddenArtifacts.length > 0) {

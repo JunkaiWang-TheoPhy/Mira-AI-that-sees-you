@@ -28,7 +28,7 @@ test("exportReleaseRepo copies a release tree and excludes local-only artifacts"
   writeFileSync(join(sourceDir, "CONTRIBUTING.md"), "# contributing\n");
   writeFileSync(join(sourceDir, "CHANGELOG.md"), "# changelog\n");
   writeFileSync(join(sourceDir, ".gitignore"), "node_modules/\n");
-  writeFileSync(join(sourceDir, "LICENSE.placeholder.md"), "# placeholder\n");
+  writeFileSync(join(sourceDir, "LICENSE"), "GNU AFFERO GENERAL PUBLIC LICENSE\n");
   writeFileSync(join(sourceDir, "package.json"), "{\"name\":\"mira-released-version\"}\n");
   writeFileSync(join(sourceDir, "deploy", "deploy-paths-overview.md"), "# deploy\n");
   writeFileSync(join(sourceDir, "docs", "migration", "source-to-release-mapping.md"), "# map\n");
@@ -57,5 +57,5 @@ test("exportReleaseRepo copies a release tree and excludes local-only artifacts"
   assert.equal(existsSync(join(outputDir, "services", "notification-router", "package.json")), true);
   assert.equal(existsSync(join(outputDir, "services", "notification-router", "node_modules")), false);
   assert.equal(existsSync(join(outputDir, "services", "notification-router", ".env")), false);
-  assert.match(readFileSync(join(outputDir, "LICENSE.placeholder.md"), "utf8"), /placeholder/i);
+  assert.match(readFileSync(join(outputDir, "LICENSE"), "utf8"), /AFFERO/i);
 });

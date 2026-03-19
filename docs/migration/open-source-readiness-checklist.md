@@ -7,6 +7,7 @@ This checklist tracks whether `Mira_Released_Version/` is clean enough to be cop
 ## Ready Items
 
 - release-side documentation shell exists
+- top-level `LICENSE` now exists and declares AGPL-3.0
 - `core/`, `modules/`, `services/`, `examples/`, and `deploy/` all have public entrypoints
 - source-to-release mapping is documented
 - release-side example config files use `.example` naming
@@ -17,7 +18,7 @@ This checklist tracks whether `Mira_Released_Version/` is clean enough to be cop
 - remove installed dependencies such as `node_modules/`
 - remove local environment files
 - confirm all runtime examples use placeholder credentials
-- confirm [LICENSE.placeholder.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/LICENSE.placeholder.md) is replaced before public launch
+- confirm the exported tree retains the top-level [LICENSE](/Users/thomasjwang/Documents/GitHub/Mira/LICENSE)
 - confirm deploy docs do not rely on private devbox paths
 - confirm all top-level docs prefer release-side links over prototype-tree links
 - confirm package names and README language are public-facing
@@ -25,7 +26,6 @@ This checklist tracks whether `Mira_Released_Version/` is clean enough to be cop
 
 ## Known Remaining Decisions
 
-- final license selection
 - release repository name and package namespace normalization
 - whether to carry package lockfiles for all release-side packages
 - which release-side tests must be copied versus referenced from the active repo

@@ -16,7 +16,7 @@ This checklist defines the concrete steps for splitting `Mira_Released_Version/`
 3. Export the standalone directory package:
    - `cd Mira_Released_Version && npm run export:repo`
 4. Go to the exported directory package.
-5. Replace [LICENSE.placeholder.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/LICENSE.placeholder.md) with the final `LICENSE`.
+5. Confirm the exported package still contains the top-level [LICENSE](/Users/thomasjwang/Documents/GitHub/Mira/LICENSE).
 6. Run the same verify and test commands again inside the exported package.
 7. Initialize the new repository:
    - `git init`
@@ -33,4 +33,4 @@ relative to [Mira_Released_Version](/Users/thomasjwang/Documents/GitHub/Javis-Ha
 
 ## Non-Goals
 
-This checklist does not choose the final license or create the remote repository for you.
+This checklist does not revisit the selected AGPL-3.0 license or create the remote repository for you.

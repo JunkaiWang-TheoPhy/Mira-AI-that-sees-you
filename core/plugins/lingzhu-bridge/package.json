@@ -1,6 +1,7 @@
 {
   "name": "@mira-release/lingzhu-bridge-core",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "test": "tsx --test tests/*.test.mts"

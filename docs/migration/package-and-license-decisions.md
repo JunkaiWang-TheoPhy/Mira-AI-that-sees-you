@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document records the current release-side policy for package naming, lockfiles, and license readiness.
+This document records the current release-side policy for package naming, lockfiles, and repository license metadata.
 
 ## Package Namespace Policy
 
@@ -34,18 +34,18 @@ Current recommendation:
 
 ## License Status
 
-The release tree still needs a final top-level `LICENSE` before public publication.
+The release tree now carries a final top-level `LICENSE`:
 
-That decision remains open on purpose. This repository should not guess a license without an explicit project choice.
+- [../../LICENSE](/Users/thomasjwang/Documents/GitHub/Mira/LICENSE)
 
-Until then, the release tree carries:
+The selected repository license is GNU Affero General Public License v3.0.
 
-- [../../LICENSE.placeholder.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/LICENSE.placeholder.md)
+For machine-readable package metadata, the release tree uses the SPDX identifier `AGPL-3.0-only`.
 
 ## Short Recommendation
 
-Before public launch:
+Before public launch, keep these aligned:
 
-1. choose the final license
+1. keep the top-level `LICENSE` and package metadata on AGPL-3.0
 2. keep `@mira-release/*` as the public package namespace unless a new repo name makes a different namespace more appropriate
 3. keep lockfiles only for packages that are actually runnable inside the release tree
