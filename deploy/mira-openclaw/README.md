@@ -25,19 +25,55 @@ When you run `npm run start:mira-openclaw`, the runtime now also:
 - auto-starts the sidecar if it is not already running
 - tears the sidecar down again when the OpenClaw foreground process exits
 
+When you run `npm run deploy:mira-openclaw`, the runtime instead:
+
+- bootstraps the release-safe Mira runtime pack if needed
+- starts a detached integrated-stack supervisor and waits for the sidecar plus gateway health checks to pass
+- records the supervisor pid in `.mira-runtime/mira-openclaw/runtime-process.json`
+- writes runtime logs into `.mira-runtime/mira-openclaw/runtime.log`
+
 ## Root Commands
 
 Use these commands from the repository root:
 
 ```bash
+npm start
+npm run deploy
+npm run status
+npm run health
+npm run self-check
+npm run down
+
 npm run bootstrap:mira-openclaw
+npm run deploy:mira-openclaw
+npm run status:mira-openclaw
+npm run down:mira-openclaw
 npm run doctor:mira-openclaw
 npm run start:mira-openclaw
+npm run health:mira-openclaw
+npm run self-check:mira-openclaw
 ```
 
 ## Environment File
 
-The bootstrap copies [env.example](/Users/thomasjwang/Documents/GitHub/Mira/deploy/mira-openclaw/env.example) into:
+Fastest repo-level path:
+
+```bash
+cp deploy/repo.env.example .env.local
+# edit .env.local
+# keep MIRA_DEPLOY_PROFILE=mira-openclaw
+npm start
+```
+
+Detached mode stays available too:
+
+```bash
+npm run deploy
+```
+
+The foreground `npm start` path is the platform-friendly default when the host expects the main process to stay attached.
+
+The bootstrap copies [env.example](./env.example) into:
 
 - `.mira-runtime/mira-openclaw/.env.local`
 
@@ -70,6 +106,22 @@ If you need to run against an already managed external `notification-router`, se
 
 - release-pack completeness and placeholder-secret inspection
 - `openclaw config validate --json` against the generated repo-local config when a local `openclaw` CLI is available
+
+`npm run health:mira-openclaw` checks the integrated stack shape:
+
+- the generated runtime pack still passes local inspection
+- `notification-router` answers `GET /v1/health`
+- the OpenClaw gateway port is listening on `127.0.0.1`
+
+`npm run self-check:mira-openclaw` runs that same integrated health gate first, then dispatches the local `notification-router` self-check path.
+
+`npm run status:mira-openclaw` reports whether the detached supervisor pid is still alive and includes the current integrated health payload when it is.
+
+`npm run down:mira-openclaw` stops that detached supervisor and clears the generated process-state file.
+
+The repo-level defaults in [../repo-manifest.json](../repo-manifest.json) delegate to this integrated profile.
+
+Those repo-level defaults load root `.env` and `.env.local` automatically before delegating to the integrated stack.
 
 ## Current Scope
 

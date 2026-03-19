@@ -7,9 +7,15 @@ import { join } from "node:path";
 
 import {
   bootstrapMiraOpenClawRuntime,
+  checkMiraOpenClawHealth,
+  deployMiraOpenClawRuntime,
+  downMiraOpenClawRuntime,
   doctorMiraOpenClawRuntime,
   inspectMiraOpenClawRuntime,
+  selfCheckMiraOpenClawRuntime,
   startMiraOpenClawRuntime,
+  statusMiraOpenClawRuntime,
+  upMiraOpenClawRuntime,
 } from "../mira-openclaw-runtime.mjs";
 
 function writeNotificationRouterFixture(root) {
@@ -454,4 +460,298 @@ test("startMiraOpenClawRuntime auto-starts the notification-router sidecar befor
     true,
   );
   assert.equal(calls.some((call) => call.type === "stop-router"), true);
+});
+
+test("checkMiraOpenClawHealth reports a healthy integrated stack when gateway and router are both reachable", async () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-health-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  try {
+    process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "test-key";
+
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const result = await checkMiraOpenClawHealth({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      checkNotificationRouterHealth() {
+        return Promise.resolve({
+          status: 200,
+          body: { ok: true, service: "notification-router" },
+        });
+      },
+      probeGatewayHealth() {
+        return Promise.resolve({
+          ok: true,
+          host: "127.0.0.1",
+          port: 18890,
+        });
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.gateway.ok, true);
+    assert.equal(result.notificationRouter.status, 200);
+    assert.equal(result.gateway.port, 18890);
+  } finally {
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+  }
+});
+
+test("selfCheckMiraOpenClawRuntime reuses integrated health checks and dispatches the notification-router self check", async () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-self-check-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  try {
+    process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "test-key";
+
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const calls = [];
+    const result = await selfCheckMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      checkNotificationRouterHealth() {
+        calls.push("router-health");
+        return Promise.resolve({
+          status: 200,
+          body: { ok: true, service: "notification-router" },
+        });
+      },
+      probeGatewayHealth() {
+        calls.push("gateway-health");
+        return Promise.resolve({
+          ok: true,
+          host: "127.0.0.1",
+          port: 18890,
+        });
+      },
+      dispatchNotificationRouterSelfCheck() {
+        calls.push("router-self-check");
+        return Promise.resolve({
+          status: 200,
+          body: { ok: true, delivery: { ok: true } },
+        });
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.stack.ok, true);
+    assert.equal(result.dispatch.status, 200);
+    assert.deepEqual(calls, [
+      "router-health",
+      "gateway-health",
+      "router-self-check",
+    ]);
+  } finally {
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+  }
+});
+
+test("checkMiraOpenClawHealth reports structured failures when the sidecar is unreachable", async () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-health-fail-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  try {
+    process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "test-key";
+
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const result = await checkMiraOpenClawHealth({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      checkNotificationRouterHealth() {
+        return Promise.reject(new Error("connect ECONNREFUSED 127.0.0.1:3302"));
+      },
+      probeGatewayHealth() {
+        return Promise.resolve({
+          ok: false,
+          host: "127.0.0.1",
+          port: 18890,
+          error: "connect ECONNREFUSED 127.0.0.1:18890",
+        });
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.notificationRouter.status, 0);
+    assert.match(result.notificationRouter.error, /ECONNREFUSED/);
+    assert.equal(result.gateway.ok, false);
+  } finally {
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+  }
+});
+
+test("checkMiraOpenClawHealth treats a live stack as healthy even if the current shell lacks the startup API key", async () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-live-health-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  bootstrapMiraOpenClawRuntime({
+    rootDir: root,
+    runCommand() {
+      return { status: 0, stdout: "", stderr: "" };
+    },
+  });
+
+  const result = await checkMiraOpenClawHealth({
+    rootDir: root,
+    openclawBinary: "/opt/homebrew/bin/openclaw",
+    checkNotificationRouterHealth() {
+      return Promise.resolve({
+        status: 200,
+        body: { ok: true, service: "notification-router" },
+      });
+    },
+    probeGatewayHealth() {
+      return Promise.resolve({
+        ok: true,
+        host: "127.0.0.1",
+        port: 18890,
+      });
+    },
+  });
+
+  assert.equal(result.inspection.issues.some((issue) => issue.includes("API key")), true);
+  assert.equal(result.ok, true);
+});
+
+test("up/status/down mira-openclaw manage a detached integrated-stack supervisor", async () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-background-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "test-key";
+
+  const spawned = [];
+  const killed = [];
+
+  try {
+    const upResult = await upMiraOpenClawRuntime({
+      rootDir: root,
+      bootstrapRunCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+      spawnDetachedProcess(command, args, options) {
+        spawned.push({ command, args, options });
+        return { pid: 54321 };
+      },
+      waitForStackHealth() {
+        return Promise.resolve({
+          ok: true,
+          gateway: { ok: true, host: "127.0.0.1", port: 18890 },
+          notificationRouter: { status: 200, body: { ok: true } },
+        });
+      },
+    });
+
+    assert.equal(upResult.ok, true);
+    assert.equal(upResult.pid, 54321);
+    assert.equal(spawned.length, 1);
+    assert.equal(spawned[0].command, process.execPath);
+    assert.equal(spawned[0].args.at(-1), "start");
+    assert.equal(
+      spawned[0].options.logPath,
+      join(root, ".mira-runtime", "mira-openclaw", "runtime.log"),
+    );
+
+    const status = await statusMiraOpenClawRuntime({
+      rootDir: root,
+      isProcessAlive(pid) {
+        return pid === 54321;
+      },
+      checkStackHealth() {
+        return Promise.resolve({
+          ok: true,
+          gateway: { ok: true, host: "127.0.0.1", port: 18890 },
+          notificationRouter: { status: 200, body: { ok: true } },
+          inspection: { missing: [], issues: [] },
+        });
+      },
+    });
+
+    assert.equal(status.running, true);
+    assert.equal(status.pid, 54321);
+    assert.equal(status.health.ok, true);
+
+    const downResult = downMiraOpenClawRuntime({
+      rootDir: root,
+      isProcessAlive(pid) {
+        return pid === 54321;
+      },
+      stopDetachedProcess(pid) {
+        killed.push(pid);
+        return true;
+      },
+    });
+
+    assert.equal(downResult.ok, true);
+    assert.deepEqual(killed, [54321]);
+  } finally {
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+  }
+});
+
+test("deployMiraOpenClawRuntime reuses the detached stack supervisor for one-command deploys", async () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-deploy-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const calls = [];
+  const result = await deployMiraOpenClawRuntime({
+    rootDir: root,
+    openclawBinary: "/opt/homebrew/bin/openclaw",
+    upRuntime(options) {
+      calls.push(options);
+      return Promise.resolve({
+        ok: true,
+        alreadyRunning: false,
+        pid: 6543,
+      });
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.pid, 6543);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].rootDir, root);
+  assert.equal(calls[0].openclawBinary, "/opt/homebrew/bin/openclaw");
 });

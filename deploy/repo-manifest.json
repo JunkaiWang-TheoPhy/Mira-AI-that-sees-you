@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "mira-release-repo-deploy",
+  "repoRoot": ".",
+  "manifestPath": "deploy/repo-manifest.json",
+  "repoEnvTemplatePath": "deploy/repo.env.example",
+  "repoEnvFilePath": ".env.local",
+  "profileSelectorEnv": "MIRA_DEPLOY_PROFILE",
+  "defaultProfile": "mira-openclaw",
+  "defaultCommands": {
+    "bootstrap": "npm run bootstrap",
+    "doctor": "npm run doctor",
+    "start": "npm start",
+    "deploy": "npm run deploy",
+    "deployAll": "npm run deploy:all",
+    "status": "npm run status",
+    "statusAll": "npm run status:all",
+    "health": "npm run health",
+    "healthAll": "npm run health:all",
+    "selfCheck": "npm run self-check",
+    "selfCheckAll": "npm run self-check:all",
+    "down": "npm run down",
+    "downAll": "npm run down:all"
+  },
+  "profiles": {
+    "notification-router": {
+      "runtimeDir": ".mira-runtime/notification-router",
+      "envTemplatePath": "deploy/service-notification-router/env.example",
+      "runtimeManifestPath": ".mira-runtime/notification-router/runtime-manifest.json",
+      "commands": {
+        "bootstrap": "npm run bootstrap:notification-router",
+        "deploy": "npm run deploy:notification-router",
+        "start": "npm run start:notification-router",
+        "status": "npm run status:notification-router",
+        "health": "npm run health:notification-router",
+        "selfCheck": "npm run self-check:notification-router",
+        "down": "npm run down:notification-router"
+      },
+      "health": {
+        "kind": "http-json",
+        "url": "http://127.0.0.1:3302/v1/health",
+        "expected": {
+          "ok": true,
+          "service": "notification-router"
+        }
+      }
+    },
+    "mira-openclaw": {
+      "runtimeDir": ".mira-runtime/mira-openclaw",
+      "envTemplatePath": "deploy/mira-openclaw/env.example",
+      "runtimeManifestPath": ".mira-runtime/mira-openclaw/runtime-manifest.json",
+      "requiredEnv": [
+        "MIRA_OPENCLAW_PROVIDER_API_KEY"
+      ],
+      "commands": {
+        "bootstrap": "npm run bootstrap:mira-openclaw",
+        "doctor": "npm run doctor:mira-openclaw",
+        "deploy": "npm run deploy:mira-openclaw",
+        "start": "npm run start:mira-openclaw",
+        "status": "npm run status:mira-openclaw",
+        "health": "npm run health:mira-openclaw",
+        "selfCheck": "npm run self-check:mira-openclaw",
+        "down": "npm run down:mira-openclaw"
+      },
+      "health": {
+        "kind": "composite",
+        "gatewayHost": "127.0.0.1",
+        "gatewayPort": 18890,
+        "sidecarHealthUrl": "http://127.0.0.1:3302/v1/health"
+      }
+    }
+  }
+}

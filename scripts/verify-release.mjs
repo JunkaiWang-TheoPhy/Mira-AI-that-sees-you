@@ -18,6 +18,8 @@ const REQUIRED_FILES = [
   "docs/migration/repository-split-readiness.md",
   "docs/migration/package-and-license-decisions.md",
   "deploy/deploy-paths-overview.md",
+  "deploy/repo.env.example",
+  "deploy/repo-manifest.json",
   "core/openclaw-config/openclaw.example.json",
   "core/openclaw-config/minimal-runtime-contract.md",
   "core/plugins/lingzhu-bridge/openclaw.plugin.json",
@@ -29,6 +31,7 @@ const REQUIRED_FILES = [
 
 const JSON_FILES = [
   "package.json",
+  "deploy/repo-manifest.json",
   "core/openclaw-config/openclaw.example.json",
   "core/plugins/lingzhu-bridge/openclaw.plugin.json",
   "modules/home-assistant/config/home-assistant-module.example.json",

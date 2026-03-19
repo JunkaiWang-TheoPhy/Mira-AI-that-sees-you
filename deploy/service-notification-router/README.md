@@ -30,12 +30,26 @@ Unified deploy comparison:
 
 - [../deploy-paths-overview.md](../deploy-paths-overview.md)
 
+If you want the repo-default integrated stack instead of the service in isolation, use:
+
+- [../repo-manifest.json](../repo-manifest.json)
+- [../repo.env.example](../repo.env.example)
+- `npm run deploy`
+
+To drive the same root-level commands into this service-only profile, set:
+
+- `MIRA_DEPLOY_PROFILE=notification-router` in the repo root `.env.local`
+- then use `npm start` for a foreground service or `npm run deploy` for detached mode
+
 ## Minimal Local Run
 
 Fastest root-level path:
 
 ```bash
 npm run bootstrap:notification-router
+npm run deploy:notification-router
+npm run status:notification-router
+npm run down:notification-router
 npm run start:notification-router
 npm run health:notification-router
 npm run self-check:notification-router
@@ -60,9 +74,10 @@ Current root-level runtime-pack model:
 1. run `npm run bootstrap:notification-router`
 2. let the bootstrap generate `.mira-runtime/notification-router/.env.local`
 3. optionally edit that env file for real DM or email providers
-4. run `npm run start:notification-router`
-5. verify `GET /v1/health`
-6. dispatch a low-risk self check-in through `POST /v1/dispatch`
+4. run `npm run deploy:notification-router` for detached one-command startup, or `npm run start:notification-router` for a foreground process
+5. use `npm run status:notification-router` to confirm the detached runtime is still alive
+6. verify `GET /v1/health`
+7. dispatch a low-risk self check-in through `POST /v1/dispatch`
 
 Example install:
 
@@ -84,6 +99,19 @@ Example startup:
 npm run start:notification-router
 ```
 
+Detached one-command deploy:
+
+```bash
+npm run deploy:notification-router
+npm run status:notification-router
+```
+
+Detached shutdown:
+
+```bash
+npm run down:notification-router
+```
+
 Health check:
 
 ```bash
@@ -100,6 +128,8 @@ Local self-check default:
 
 - the generated `.env.local` rewrites the DM webhook to `http://127.0.0.1:$PORT/__local__/dm`
 - `npm run self-check:notification-router` therefore works out of the box for local verification without an external OpenClaw DM webhook
+- detached mode persists runtime state in `.mira-runtime/notification-router/runtime-process.json`
+- detached mode writes stdout and stderr into `.mira-runtime/notification-router/runtime.log`
 
 Current limitations:
 

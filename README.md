@@ -19,39 +19,59 @@ Current public-repo hygiene companions:
 - [package.json](./package.json)
 - [LICENSE](./LICENSE)
 
-Mira is licensed under the GNU Affero General Public License v3.0. See [LICENSE](./LICENSE).
-
 ## Quick Start
 
 The current fastest way into this release tree is:
 
 - [readme/00-overview/quick-start.md](./readme/00-overview/quick-start.md)
 
+The current repo-level one-command path is:
+
+```bash
+npm run bootstrap
+cp deploy/repo.env.example .env.local
+# edit .env.local
+# keep MIRA_DEPLOY_PROFILE=mira-openclaw for the default integrated stack
+# or set MIRA_DEPLOY_PROFILE=notification-router for router-only
+
+npm start
+```
+
 The current ordered onboarding path is:
 
 - [readme/00-overview/getting-started.md](./readme/00-overview/getting-started.md)
 - [deploy/deploy-paths-overview.md](./deploy/deploy-paths-overview.md)
 
-For root-level local bootstrap entrypoints:
+That page compares the current real paths, including the repo-level default stack entrypoint.
+
+Current root-level one-command local deploy entrypoints:
 
 ```bash
-npm run bootstrap:notification-router
-npm run bootstrap:mira-openclaw
-```
+npm run bootstrap
+npm run deploy
+npm start
+npm run status
+npm run health
+npm run self-check
+npm run down
 
-Local verification companions:
-
-```bash
-npm run health:notification-router
+npm run deploy:notification-router
+npm run status:notification-router
 npm run self-check:notification-router
-npm run doctor:mira-openclaw
+
+npm run deploy:mira-openclaw
+npm run status:mira-openclaw
+npm run health:mira-openclaw
 ```
 
-That page compares the three currently real paths:
+Both deploy paths write runtime state under `.mira-runtime/`, including per-stack `runtime-process.json` and `runtime.log` files.
 
-- `minimal-core`
-- `home-stack`
-- `service-notification-router`
+Use `npm start` when the host expects a standard foreground process. Use `npm run deploy` when you want the repo to detach and manage its own background supervisor.
+
+The repo-level machine-readable deploy contract now lives at:
+
+- [deploy/repo-manifest.json](./deploy/repo-manifest.json)
+- [deploy/repo.env.example](./deploy/repo.env.example)
 
 ## Current Status
 
@@ -59,6 +79,9 @@ That page compares the three currently real paths:
 
 What already exists in this release tree:
 
+- a repo-level one-command deploy contract through `npm run bootstrap`, `npm start`, and `npm run deploy`
+- two root-selectable deploy profiles: `mira-openclaw` and `notification-router`
+- a committed machine-readable deploy manifest and root env template
 - the first-party `Home Assistant` flagship module scaffold
 - a release-oriented device registry example
 - the first `sceneResolver` planning skeleton
@@ -69,23 +92,19 @@ What already exists in this release tree:
 - the first home-stack onboarding path
 - a first Git-ready release baseline document
 - an open-source readiness checklist
-- root-level local runtime pack generators for `notification-router` and `mira-openclaw`
-- a local loopback self-check path for `notification-router`
-- a repo-local OpenClaw bootstrap path that installs the bundled `lingzhu` plugin shell without mutating global OpenClaw config
-- a repo-local OpenClaw startup default that binds Mira to port `18890` instead of assuming the global OpenClaw gateway port is free
-- an integrated `start:mira-openclaw` path that auto-starts and auto-stops the generated `notification-router` sidecar
 
 What is not fully migrated yet:
 
 - the remaining non-template `core/` runtime materials outside the current release-safe set
-- real deploy recipes
+- container or platform-specific manifests such as `Dockerfile`, `docker-compose.yml`, or `render.yaml`
 - additional modules such as wearable, Apple, printer, and channel integrations
 - most release-side `docs/` and `examples/` contents
 
 So this directory should be read as:
 
 - a release architecture in progress
-- not yet a full drop-in standalone repo
+- a repo with local one-command deploy support for the current release-safe paths
+- not yet a full migration of every private-runtime capability
 
 ## What Mira Is
 
@@ -171,6 +190,13 @@ The current release-baseline companions now also exist at:
 
 The release root now also provides a shared verification entrypoint:
 
+- `npm run bootstrap`
+- `npm start`
+- `npm run deploy`
+- `npm run status`
+- `npm run health`
+- `npm run self-check`
+- `npm run down`
 - `npm run verify:release`
 - `npm run export:repo`
 
@@ -215,6 +241,10 @@ The first core-plus-service composition path now exists through:
 
 - [examples/service-notification-router/README.md](./examples/service-notification-router/README.md)
 - [deploy/service-notification-router/README.md](./deploy/service-notification-router/README.md)
+
+The current repo-default integrated entrypoint now also exists through:
+
+- [deploy/mira-openclaw/README.md](./deploy/mira-openclaw/README.md)
 
 ### Modules
 

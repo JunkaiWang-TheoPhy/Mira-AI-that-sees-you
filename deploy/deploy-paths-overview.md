@@ -2,49 +2,92 @@
 
 ## Purpose
 
-This page unifies the three current release-side deploy stories.
+This page unifies the current release-side deploy stories and points to the default repo entrypoint first.
 
-## The Three Paths
-
-### 1. Core Only
+## Default Repo Entrypoint
 
 Use:
 
-- [core/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/core/README.md)
+- [repo-manifest.json](./repo-manifest.json)
+- [repo.env.example](./repo.env.example)
+- [mira-openclaw/README.md](./mira-openclaw/README.md)
+
+Choose this when you want:
+
+- the closest thing to "give the repo URL and deploy it"
+- the release-safe Mira core plus bundled OpenClaw integration
+- automatic `notification-router` sidecar startup through the default root commands
+- a standard foreground entrypoint for platforms that assume `npm start`
+
+Default root commands:
+
+```bash
+cp deploy/repo.env.example .env.local
+# edit .env.local
+# set MIRA_DEPLOY_PROFILE=notification-router for router-only
+# or keep mira-openclaw for the default integrated stack
+
+npm run deploy
+npm start
+npm run status
+npm run health
+npm run self-check
+npm run down
+```
+
+## Focused Paths
+
+### 1. Mira Plus OpenClaw
+
+Use:
+
+- [mira-openclaw/README.md](./mira-openclaw/README.md)
+
+Choose this when you want:
+
+- the current full release-safe integrated stack
+- a repo-local OpenClaw config and plugin install path
+- sidecar-managed outbound routing
+
+### 2. Notification Router Only
+
+Use:
+
+- [service-notification-router/README.md](./service-notification-router/README.md)
+
+Choose this when you want:
+
+- outbound DM or email delivery only
+- machine-readable outbound policy
+- a sidecar service you can validate separately from the main stack
+
+### 3. Core Only
+
+Use:
+
+- [core/README.md](./core/README.md)
 
 Choose this when you want:
 
 - Mira persona and workspace only
-- release-safe Lingzhu core plugin path
-- no first-party modules
+- the release-safe Lingzhu core plugin path
+- no always-on sidecar services
 
-### 2. Core Plus Home Assistant
-
-Use:
-
-- [module-home-assistant/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/module-home-assistant/README.md)
-
-Choose this when you want:
-
-- household device registry
-- scene planning
-- first-party Home Assistant execution layer
-
-### 3. Notification Router Service
+### 4. Core Plus Home Assistant Scaffold
 
 Use:
 
-- [service-notification-router/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/service-notification-router/README.md)
+- [module-home-assistant/README.md](./module-home-assistant/README.md)
 
 Choose this when you want:
 
-- outbound DM or email delivery
-- machine-readable outbound policy
-- a service that can be composed with core or module paths
+- the first-party Home Assistant scaffold
+- device registry and scene planning materials
+- release-side module structure, not a finished one-click deploy
 
 ## Common Operator Rules
 
-Across all three paths:
+Across all paths:
 
 - use release-side `.example` files as starting points
 - do not copy live secrets into the repository
@@ -55,10 +98,10 @@ Across all three paths:
 
 For first-time operators:
 
-1. `core`
-2. `module-home-assistant` or `service-notification-router`
-3. combined examples if needed
+1. `npm run deploy` if you want the current default integrated stack
+2. `notification-router` only if you need to validate outbound delivery in isolation
+3. `core` or `module-home-assistant` only if you are working on individual release-safe slices
 
 The main ordered guide remains:
 
-- [../readme/00-overview/getting-started.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/readme/00-overview/getting-started.md)
+- [../readme/00-overview/getting-started.md](../readme/00-overview/getting-started.md)

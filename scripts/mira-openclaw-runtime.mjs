@@ -1,11 +1,14 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 
 import {
   bootstrapNotificationRouterRuntime,
   buildNotificationRouterRuntimeEnv,
+  checkNotificationRouterHealth,
+  dispatchNotificationRouterSelfCheck,
   inspectNotificationRouterRuntime,
   resolveNotificationRouterPaths,
 } from "./notification-router-runtime.mjs";
@@ -13,10 +16,15 @@ import {
   copyFileIfMissing,
   copyPath,
   findExecutableSync,
+  isProcessAlive,
   isPlaceholderValue,
   loadEnvFile,
+  readJsonFile,
+  removeFile,
   runCommandSync,
   runShellCommandSync,
+  startDetachedProcess,
+  stopDetachedProcess,
   toBoolean,
   writeJsonFile,
 } from "./runtime-utils.mjs";
@@ -42,6 +50,8 @@ export function resolveMiraOpenClawPaths(rootDir = DEFAULT_ROOT) {
     pluginRuntimeDir: join(runtimeDir, "core", "plugins", "lingzhu-bridge"),
     openClawStateDir: join(runtimeDir, "openclaw-state"),
     manifestPath: join(runtimeDir, "runtime-manifest.json"),
+    processStatePath: join(runtimeDir, "runtime-process.json"),
+    logPath: join(runtimeDir, "runtime.log"),
   };
 }
 
@@ -209,6 +219,8 @@ function buildMiraOpenClawManifest(paths) {
     systemPromptPath: paths.promptRuntimePath,
     notificationRouterManifestPath: notificationRouterPaths.manifestPath,
     gatewayPort: env.MIRA_OPENCLAW_GATEWAY_PORT || "18890",
+    processStatePath: paths.processStatePath,
+    logPath: paths.logPath,
     startCommandEnv: "OPENCLAW_START_COMMAND",
   };
 }
@@ -249,6 +261,17 @@ function buildNotificationRouterSidecarState(rootDir) {
     env,
     baseUrl,
     healthUrl: `${baseUrl}/v1/health`,
+  };
+}
+
+function resolveGatewayConnectionState(rootDir) {
+  const paths = resolveMiraOpenClawPaths(rootDir);
+  const env = loadMiraOpenClawEnv(paths);
+  const port = Number.parseInt(env.MIRA_OPENCLAW_GATEWAY_PORT || "18890", 10);
+
+  return {
+    host: "127.0.0.1",
+    port: Number.isFinite(port) ? port : 18890,
   };
 }
 
@@ -306,6 +329,43 @@ export async function waitForNotificationRouterHealth({
   throw new Error(`notification-router sidecar did not become healthy: ${healthUrl}`);
 }
 
+export async function probeGatewayHealth({
+  rootDir = DEFAULT_ROOT,
+  timeoutMs = 1000,
+} = {}) {
+  const target = resolveGatewayConnectionState(rootDir);
+
+  return await new Promise((resolveProbe) => {
+    const socket = net.createConnection(target);
+    const timeoutHandle = setTimeout(() => {
+      socket.destroy();
+      resolveProbe({
+        ok: false,
+        ...target,
+        error: `connection timeout after ${timeoutMs}ms`,
+      });
+    }, timeoutMs);
+
+    socket.once("connect", () => {
+      clearTimeout(timeoutHandle);
+      socket.end();
+      resolveProbe({
+        ok: true,
+        ...target,
+      });
+    });
+
+    socket.once("error", (error) => {
+      clearTimeout(timeoutHandle);
+      resolveProbe({
+        ok: false,
+        ...target,
+        error: error.message,
+      });
+    });
+  });
+}
+
 function startBackgroundProcess(command, args, { cwd, env, stdio = "inherit" } = {}) {
   const child = spawn(command, args, {
     cwd,
@@ -342,6 +402,14 @@ function resolveStartCommand(env, openclawBinary) {
 
   const gatewayPort = env.MIRA_OPENCLAW_GATEWAY_PORT?.trim() || "18890";
   return `${openclawBinary} gateway run --allow-unconfigured --port ${gatewayPort}`;
+}
+
+function readMiraOpenClawProcessState(paths) {
+  const state = readJsonFile(paths.processStatePath, null);
+  if (!state || typeof state !== "object") {
+    return null;
+  }
+  return state;
 }
 
 export function bootstrapMiraOpenClawRuntime({
@@ -482,6 +550,243 @@ export function doctorMiraOpenClawRuntime({
   };
 }
 
+export async function checkMiraOpenClawHealth({
+  rootDir = DEFAULT_ROOT,
+  openclawBinary,
+  checkNotificationRouterHealth: checkRouterHealth = checkNotificationRouterHealth,
+  probeGatewayHealth: probeGateway = probeGatewayHealth,
+} = {}) {
+  const inspection = inspectMiraOpenClawRuntime({ rootDir, openclawBinary });
+  let routerHealth;
+  try {
+    routerHealth = await checkRouterHealth({ rootDir });
+  } catch (error) {
+    routerHealth = {
+      status: 0,
+      body: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  let gateway;
+  try {
+    gateway = await probeGateway({ rootDir });
+  } catch (error) {
+    const target = resolveGatewayConnectionState(rootDir);
+    gateway = {
+      ok: false,
+      ...target,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  return {
+    ok:
+      inspection.missing.length === 0
+      && routerHealth.status === 200
+      && routerHealth.body?.ok === true
+      && gateway.ok === true,
+    inspection,
+    notificationRouter: routerHealth,
+    gateway,
+  };
+}
+
+export async function waitForMiraOpenClawHealth({
+  rootDir = DEFAULT_ROOT,
+  openclawBinary,
+  timeoutMs = 20000,
+  intervalMs = 500,
+  checkStackHealth = checkMiraOpenClawHealth,
+} = {}) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const result = await checkStackHealth({ rootDir, openclawBinary });
+    if (result.ok) {
+      return result;
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, intervalMs));
+  }
+
+  throw new Error("mira-openclaw integrated stack did not become healthy in time");
+}
+
+export async function upMiraOpenClawRuntime({
+  rootDir = DEFAULT_ROOT,
+  bootstrapRunCommand = runCommandSync,
+  openclawBinary,
+  spawnDetachedProcess: spawnProcess = startDetachedProcess,
+  waitForStackHealth = waitForMiraOpenClawHealth,
+  isProcessAlive: processAlive = isProcessAlive,
+} = {}) {
+  const paths = resolveMiraOpenClawPaths(rootDir);
+  bootstrapMiraOpenClawRuntime({
+    rootDir,
+    runCommand: bootstrapRunCommand,
+    openclawBinary,
+  });
+
+  const inspection = inspectMiraOpenClawRuntime({ rootDir, openclawBinary });
+  if (inspection.missing.length > 0 || inspection.issues.length > 0) {
+    throw new Error(
+      [
+        "mira-openclaw runtime is not ready for background start.",
+        ...inspection.missing,
+        ...inspection.issues,
+      ].join("\n"),
+    );
+  }
+
+  const existingState = readMiraOpenClawProcessState(paths);
+  if (existingState?.pid && processAlive(existingState.pid)) {
+    const health = await waitForStackHealth({ rootDir, openclawBinary });
+    return {
+      ok: health.ok,
+      alreadyRunning: true,
+      pid: existingState.pid,
+      logPath: paths.logPath,
+      processStatePath: paths.processStatePath,
+      health,
+    };
+  }
+
+  const spawned = spawnProcess(
+    process.execPath,
+    [join(paths.rootDir, "scripts", "mira-openclaw-runtime.mjs"), "start"],
+    {
+      cwd: paths.rootDir,
+      env: {
+        ...process.env,
+      },
+      logPath: paths.logPath,
+    },
+  );
+
+  if (!spawned?.pid) {
+    throw new Error("mira-openclaw detached startup did not return a pid");
+  }
+
+  writeJsonFile(paths.processStatePath, {
+    pid: spawned.pid,
+    command: `${process.execPath} scripts/mira-openclaw-runtime.mjs start`,
+    cwd: paths.rootDir,
+    logPath: paths.logPath,
+    startedAt: new Date().toISOString(),
+  });
+
+  try {
+    const health = await waitForStackHealth({ rootDir, openclawBinary });
+    return {
+      ok: health.ok,
+      alreadyRunning: false,
+      pid: spawned.pid,
+      logPath: paths.logPath,
+      processStatePath: paths.processStatePath,
+      health,
+    };
+  } catch (error) {
+    stopDetachedProcess(spawned.pid);
+    removeFile(paths.processStatePath);
+    throw error;
+  }
+}
+
+export async function deployMiraOpenClawRuntime({
+  upRuntime = upMiraOpenClawRuntime,
+  ...options
+} = {}) {
+  return await upRuntime(options);
+}
+
+export async function statusMiraOpenClawRuntime({
+  rootDir = DEFAULT_ROOT,
+  isProcessAlive: processAlive = isProcessAlive,
+  checkStackHealth = checkMiraOpenClawHealth,
+  openclawBinary,
+} = {}) {
+  const paths = resolveMiraOpenClawPaths(rootDir);
+  const state = readMiraOpenClawProcessState(paths);
+  const pid = state?.pid ?? null;
+  const running = Number.isInteger(pid) && processAlive(pid);
+  let health = null;
+
+  if (running) {
+    health = await checkStackHealth({ rootDir, openclawBinary });
+  }
+
+  return {
+    runtimeDir: paths.runtimeDir,
+    pid,
+    running,
+    logPath: paths.logPath,
+    processStatePath: paths.processStatePath,
+    health,
+  };
+}
+
+export function downMiraOpenClawRuntime({
+  rootDir = DEFAULT_ROOT,
+  isProcessAlive: processAlive = isProcessAlive,
+  stopDetachedProcess: stopProcess = stopDetachedProcess,
+} = {}) {
+  const paths = resolveMiraOpenClawPaths(rootDir);
+  const state = readMiraOpenClawProcessState(paths);
+  const pid = state?.pid ?? null;
+
+  if (!Number.isInteger(pid)) {
+    removeFile(paths.processStatePath);
+    return {
+      ok: true,
+      pid: null,
+      stopped: false,
+      logPath: paths.logPath,
+      processStatePath: paths.processStatePath,
+    };
+  }
+
+  const stopped = processAlive(pid) ? stopProcess(pid) : false;
+  removeFile(paths.processStatePath);
+
+  return {
+    ok: true,
+    pid,
+    stopped,
+    logPath: paths.logPath,
+    processStatePath: paths.processStatePath,
+  };
+}
+
+export async function selfCheckMiraOpenClawRuntime({
+  rootDir = DEFAULT_ROOT,
+  openclawBinary,
+  checkNotificationRouterHealth: checkRouterHealth = checkNotificationRouterHealth,
+  probeGatewayHealth: probeGateway = probeGatewayHealth,
+  dispatchNotificationRouterSelfCheck: dispatchRouterSelfCheck = dispatchNotificationRouterSelfCheck,
+} = {}) {
+  const stack = await checkMiraOpenClawHealth({
+    rootDir,
+    openclawBinary,
+    checkNotificationRouterHealth: checkRouterHealth,
+    probeGatewayHealth: probeGateway,
+  });
+
+  if (!stack.ok) {
+    return {
+      ok: false,
+      stack,
+      dispatch: null,
+    };
+  }
+
+  const dispatch = await dispatchRouterSelfCheck({ rootDir });
+  return {
+    ok: dispatch.status === 200,
+    stack,
+    dispatch,
+  };
+}
+
 export async function startMiraOpenClawRuntime({
   rootDir = DEFAULT_ROOT,
   bootstrapRunCommand = runCommandSync,
@@ -576,7 +881,10 @@ async function main() {
           ...result,
           next: [
             "npm run doctor:mira-openclaw",
+            "npm run deploy:mira-openclaw",
             "npm run start:mira-openclaw",
+            "npm run health:mira-openclaw",
+            "npm run self-check:mira-openclaw",
           ],
         },
         null,
@@ -594,7 +902,42 @@ async function main() {
   }
 
   if (command === "start") {
-    startMiraOpenClawRuntime();
+    await startMiraOpenClawRuntime();
+    return;
+  }
+
+  if (command === "deploy" || command === "up") {
+    const result = await deployMiraOpenClawRuntime();
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.ok ? 0 : 1;
+    return;
+  }
+
+  if (command === "status") {
+    const result = await statusMiraOpenClawRuntime();
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.running ? 0 : 1;
+    return;
+  }
+
+  if (command === "down") {
+    const result = downMiraOpenClawRuntime();
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.ok ? 0 : 1;
+    return;
+  }
+
+  if (command === "health") {
+    const result = await checkMiraOpenClawHealth();
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.ok ? 0 : 1;
+    return;
+  }
+
+  if (command === "self-check") {
+    const result = await selfCheckMiraOpenClawRuntime();
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.ok ? 0 : 1;
     return;
   }
 

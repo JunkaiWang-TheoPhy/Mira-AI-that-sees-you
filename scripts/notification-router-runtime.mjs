@@ -5,9 +5,14 @@ import { join, resolve } from "node:path";
 import {
   copyFileIfMissing,
   copyPath,
+  isProcessAlive,
   isPlaceholderValue,
   loadEnvFile,
+  readJsonFile,
+  removeFile,
   runCommandSync,
+  startDetachedProcess,
+  stopDetachedProcess,
   writeJsonFile,
 } from "./runtime-utils.mjs";
 
@@ -20,6 +25,8 @@ function buildNotificationRouterManifest(paths) {
     runtimeDir: paths.runtimeDir,
     envFilePath: paths.envFilePath,
     manifestPath: paths.manifestPath,
+    processStatePath: paths.processStatePath,
+    logPath: paths.logPath,
     defaultPort: 3302,
     healthUrl: "http://127.0.0.1:3302/v1/health",
     dispatchUrl: "http://127.0.0.1:3302/v1/dispatch",
@@ -36,6 +43,8 @@ export function resolveNotificationRouterPaths(rootDir = DEFAULT_ROOT) {
     runtimeDir,
     envFilePath: join(runtimeDir, ".env.local"),
     manifestPath: join(runtimeDir, "runtime-manifest.json"),
+    processStatePath: join(runtimeDir, "runtime-process.json"),
+    logPath: join(runtimeDir, "runtime.log"),
   };
 }
 
@@ -87,6 +96,14 @@ export function bootstrapNotificationRouterRuntime({
     envFilePath: paths.envFilePath,
     manifestPath: paths.manifestPath,
   };
+}
+
+function readNotificationRouterProcessState(paths) {
+  const state = readJsonFile(paths.processStatePath, null);
+  if (!state || typeof state !== "object") {
+    return null;
+  }
+  return state;
 }
 
 export function inspectNotificationRouterRuntime({ rootDir = DEFAULT_ROOT } = {}) {
@@ -190,6 +207,31 @@ export async function checkNotificationRouterHealth({ rootDir = DEFAULT_ROOT } =
   };
 }
 
+export async function waitForNotificationRouterHealth({
+  rootDir = DEFAULT_ROOT,
+  timeoutMs = 15000,
+  intervalMs = 250,
+  probeHealth = async (options) => {
+    const result = await checkNotificationRouterHealth(options);
+    return result.status === 200 && result.body?.ok === true;
+  },
+} = {}) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      if (await probeHealth({ rootDir })) {
+        return { ok: true };
+      }
+    } catch {
+      // The router is still booting; keep polling until timeout.
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, intervalMs));
+  }
+
+  throw new Error("notification-router did not become healthy in time");
+}
+
 export async function dispatchNotificationRouterSelfCheck({
   rootDir = DEFAULT_ROOT,
 } = {}) {
@@ -234,6 +276,139 @@ export async function dispatchNotificationRouterSelfCheck({
   };
 }
 
+export async function upNotificationRouterRuntime({
+  rootDir = DEFAULT_ROOT,
+  runCommand = runCommandSync,
+  spawnDetachedProcess: spawnProcess = startDetachedProcess,
+  waitForHealth = waitForNotificationRouterHealth,
+  checkHealth = checkNotificationRouterHealth,
+  isProcessAlive: processAlive = isProcessAlive,
+} = {}) {
+  const paths = resolveNotificationRouterPaths(rootDir);
+  bootstrapNotificationRouterRuntime({ rootDir, runCommand });
+
+  const existingState = readNotificationRouterProcessState(paths);
+  if (existingState?.pid && processAlive(existingState.pid)) {
+    const healthCheck = await checkHealth({ rootDir });
+    return {
+      ok: healthCheck.status === 200,
+      alreadyRunning: true,
+      pid: existingState.pid,
+      logPath: paths.logPath,
+      processStatePath: paths.processStatePath,
+      health: healthCheck,
+    };
+  }
+
+  const env = buildNotificationRouterRuntimeEnv(paths);
+  const spawned = spawnProcess("npm", ["run", "start"], {
+    cwd: paths.runtimeDir,
+    env,
+    logPath: paths.logPath,
+  });
+
+  if (!spawned?.pid) {
+    throw new Error("notification-router detached startup did not return a pid");
+  }
+
+  writeJsonFile(paths.processStatePath, {
+    pid: spawned.pid,
+    command: "npm run start",
+    cwd: paths.runtimeDir,
+    logPath: paths.logPath,
+    startedAt: new Date().toISOString(),
+  });
+
+  try {
+    await waitForHealth({ rootDir });
+    const health = await checkHealth({ rootDir });
+    return {
+      ok: health.status === 200,
+      alreadyRunning: false,
+      pid: spawned.pid,
+      logPath: paths.logPath,
+      processStatePath: paths.processStatePath,
+      health,
+    };
+  } catch (error) {
+    stopDetachedProcess(spawned.pid);
+    removeFile(paths.processStatePath);
+    throw error;
+  }
+}
+
+export async function deployNotificationRouterRuntime({
+  upRuntime = upNotificationRouterRuntime,
+  ...options
+} = {}) {
+  return await upRuntime(options);
+}
+
+export async function statusNotificationRouterRuntime({
+  rootDir = DEFAULT_ROOT,
+  isProcessAlive: processAlive = isProcessAlive,
+  checkHealth = checkNotificationRouterHealth,
+} = {}) {
+  const paths = resolveNotificationRouterPaths(rootDir);
+  const state = readNotificationRouterProcessState(paths);
+  const pid = state?.pid ?? null;
+  const running = Number.isInteger(pid) && processAlive(pid);
+  let health = null;
+
+  if (running) {
+    try {
+      health = await checkHealth({ rootDir });
+    } catch (error) {
+      health = {
+        status: 0,
+        body: null,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  return {
+    runtimeDir: paths.runtimeDir,
+    pid,
+    running,
+    logPath: paths.logPath,
+    processStatePath: paths.processStatePath,
+    health,
+  };
+}
+
+export function downNotificationRouterRuntime({
+  rootDir = DEFAULT_ROOT,
+  isProcessAlive: processAlive = isProcessAlive,
+  stopDetachedProcess: stopProcess = stopDetachedProcess,
+} = {}) {
+  const paths = resolveNotificationRouterPaths(rootDir);
+  const state = readNotificationRouterProcessState(paths);
+  const pid = state?.pid ?? null;
+
+  if (!Number.isInteger(pid)) {
+    removeFile(paths.processStatePath);
+    return {
+      ok: true,
+      pid: null,
+      stopped: false,
+      logPath: paths.logPath,
+      processStatePath: paths.processStatePath,
+    };
+  }
+
+  const stopped = processAlive(pid) ? stopProcess(pid) : false;
+  removeFile(paths.processStatePath);
+
+  return {
+    ok: true,
+    pid,
+    stopped,
+    logPath: paths.logPath,
+    processStatePath: paths.processStatePath,
+  };
+}
+
 async function main() {
   const command = process.argv[2] ?? "bootstrap";
 
@@ -246,6 +421,7 @@ async function main() {
           command,
           ...result,
           next: [
+            "npm run deploy:notification-router",
             "npm run start:notification-router",
             "npm run health:notification-router",
             "npm run self-check:notification-router",
@@ -267,6 +443,27 @@ async function main() {
 
   if (command === "start") {
     startNotificationRouterRuntime();
+    return;
+  }
+
+  if (command === "deploy" || command === "up") {
+    const result = await deployNotificationRouterRuntime();
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.ok ? 0 : 1;
+    return;
+  }
+
+  if (command === "status") {
+    const result = await statusNotificationRouterRuntime();
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.running ? 0 : 1;
+    return;
+  }
+
+  if (command === "down") {
+    const result = downNotificationRouterRuntime();
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.ok ? 0 : 1;
     return;
   }
 

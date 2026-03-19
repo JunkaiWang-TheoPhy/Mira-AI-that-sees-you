@@ -1,11 +1,13 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
+  closeSync,
   cpSync,
   existsSync,
   mkdirSync,
-  writeFileSync,
+  openSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
 
@@ -32,6 +34,18 @@ export function copyFileIfMissing(sourcePath, destinationPath) {
 export function writeJsonFile(path, value) {
   ensureParentDir(path);
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+export function readJsonFile(path, fallback = null) {
+  if (!existsSync(path)) {
+    return fallback;
+  }
+
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
+export function removeFile(path) {
+  rmSync(path, { force: true });
 }
 
 export function parseEnvText(text) {
@@ -146,4 +160,64 @@ export function findExecutableSync(command) {
 
   const resolved = (result.stdout ?? "").trim();
   return resolved || null;
+}
+
+export function startDetachedProcess(
+  command,
+  args,
+  { cwd, env, logPath } = {},
+) {
+  ensureParentDir(logPath);
+  const logFd = openSync(logPath, "a");
+
+  try {
+    const child = spawn(command, args, {
+      cwd,
+      env,
+      stdio: ["ignore", logFd, logFd],
+      detached: true,
+    });
+
+    if (child.error) {
+      throw child.error;
+    }
+
+    child.unref();
+    return {
+      pid: child.pid ?? null,
+    };
+  } finally {
+    closeSync(logFd);
+  }
+}
+
+export function isProcessAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function stopDetachedProcess(pid, signal = "SIGTERM") {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(-pid, signal);
+    return true;
+  } catch {
+    try {
+      process.kill(pid, signal);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
