@@ -1,8 +1,5 @@
 # Mira Released Version
 
-> 有些关心 不需要开口
-
-
 Mira is a companion-style agent release built on OpenClaw.
 
 This directory is the staging root for a standalone public repository that will package Mira as:
@@ -20,7 +17,7 @@ Current public-repo hygiene companions:
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 - [CHANGELOG.md](./CHANGELOG.md)
 - [package.json](./package.json)
-- [LICENSE](./LICENSE)
+- [LICENSE.placeholder.md](./LICENSE.placeholder.md)
 
 ## Quick Start
 
@@ -28,70 +25,16 @@ The current fastest way into this release tree is:
 
 - [readme/00-overview/quick-start.md](./readme/00-overview/quick-start.md)
 
-The current repo-level one-command path is:
-
-```bash
-npm run bootstrap
-cp deploy/repo.env.example .env.local
-# edit .env.local
-# keep MIRA_DEPLOY_PROFILE=mira-openclaw for the default integrated stack
-# leave MIRA_OPENCLAW_PROVIDER_API_KEY=replace-me if the host OpenClaw already
-# has a usable default provider; otherwise set OPENAI_API_KEY or the
-# MIRA_OPENCLAW_PROVIDER_* repo fallback values
-# or set MIRA_DEPLOY_PROFILE=notification-router for router-only
-
-npm start
-```
-
 The current ordered onboarding path is:
 
 - [readme/00-overview/getting-started.md](./readme/00-overview/getting-started.md)
 - [deploy/deploy-paths-overview.md](./deploy/deploy-paths-overview.md)
 
-That page compares the current real paths, including the repo-level default stack entrypoint.
+That page compares the three currently real paths:
 
-Current root-level one-command local deploy entrypoints:
-
-```bash
-npm run bootstrap
-npm run deploy
-npm start
-npm run status
-npm run health
-npm run self-check
-npm run down
-
-npm run deploy:notification-router
-npm run status:notification-router
-npm run self-check:notification-router
-
-npm run deploy:mira-openclaw
-npm run status:mira-openclaw
-npm run health:mira-openclaw
-```
-
-Both deploy paths write runtime state under `.mira-runtime/`, including per-stack `runtime-process.json` and `runtime.log` files.
-
-Use `npm start` when the host expects a standard foreground process. Use `npm run deploy` when you want the repo to detach and manage its own background supervisor.
-The direct `mira-openclaw` profile commands also load the repo root `.env` and `.env.local`, so one root env file can drive both `npm start` and `npm run doctor:mira-openclaw`.
-
-The repo-level machine-readable deploy contract now lives at:
-
-- [deploy/repo-manifest.json](./deploy/repo-manifest.json)
-- [deploy/repo.env.example](./deploy/repo.env.example)
-- [Dockerfile](./Dockerfile)
-- [compose.yaml](./compose.yaml)
-- [Procfile](./Procfile)
-- [render.yaml](./render.yaml)
-
-For the integrated `mira-openclaw` profile, provider resolution is now host-first:
-
-- inherit the host OpenClaw default provider when one is already configured
-- auto-detect named host profiles such as `main` from OpenClaw workspace paths and look under paths like `~/.openclaw-main/openclaw.json`
-- accept host defaults resolved by OpenClaw itself, including built-in providers declared only by the default model ref and custom providers stored under `agents/<id>/agent/models.json`
-- fall back to repo `MIRA_OPENCLAW_PROVIDER_*` env values only when the host has no usable default provider
-- allow explicit overrides through `MIRA_OPENCLAW_HOST_PROFILE` or `MIRA_OPENCLAW_HOST_CONFIG_PATH`
-- fail fast with guidance when neither source is configured
+- `minimal-core`
+- `home-stack`
+- `service-notification-router`
 
 ## Current Status
 
@@ -99,10 +42,6 @@ For the integrated `mira-openclaw` profile, provider resolution is now host-firs
 
 What already exists in this release tree:
 
-- a repo-level one-command deploy contract through `npm run bootstrap`, `npm start`, and `npm run deploy`
-- two root-selectable deploy profiles: `mira-openclaw` and `notification-router`
-- a committed machine-readable deploy manifest and root env template
-- a router-first `Dockerfile`, `compose.yaml`, `Procfile`, and `render.yaml` for common URL deployers and container platforms
 - the first-party `Home Assistant` flagship module scaffold
 - a release-oriented device registry example
 - the first `sceneResolver` planning skeleton
@@ -117,20 +56,14 @@ What already exists in this release tree:
 What is not fully migrated yet:
 
 - the remaining non-template `core/` runtime materials outside the current release-safe set
+- real deploy recipes
 - additional modules such as wearable, Apple, printer, and channel integrations
 - most release-side `docs/` and `examples/` contents
-
-Current container/platform scope:
-
-- [Dockerfile](./Dockerfile), [compose.yaml](./compose.yaml), [Procfile](./Procfile), and [render.yaml](./render.yaml) default to the `notification-router` profile
-- the root [Dockerfile](./Dockerfile) now also bundles the `openclaw` CLI, so direct Docker/Compose users can override `MIRA_DEPLOY_PROFILE=mira-openclaw`
-- [render.yaml](./render.yaml) remains router-first because its health check is HTTP `/v1/health`
 
 So this directory should be read as:
 
 - a release architecture in progress
-- a repo with local one-command deploy support for the current release-safe paths
-- not yet a full migration of every private-runtime capability
+- not yet a full drop-in standalone repo
 
 ## What Mira Is
 
@@ -216,13 +149,6 @@ The current release-baseline companions now also exist at:
 
 The release root now also provides a shared verification entrypoint:
 
-- `npm run bootstrap`
-- `npm start`
-- `npm run deploy`
-- `npm run status`
-- `npm run health`
-- `npm run self-check`
-- `npm run down`
 - `npm run verify:release`
 - `npm run export:repo`
 
@@ -267,10 +193,6 @@ The first core-plus-service composition path now exists through:
 
 - [examples/service-notification-router/README.md](./examples/service-notification-router/README.md)
 - [deploy/service-notification-router/README.md](./deploy/service-notification-router/README.md)
-
-The current repo-default integrated entrypoint now also exists through:
-
-- [deploy/mira-openclaw/README.md](./deploy/mira-openclaw/README.md)
 
 ### Modules
 

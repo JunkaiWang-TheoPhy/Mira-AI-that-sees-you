@@ -95,6 +95,7 @@ Provider resolution order is now:
 
 - inherit the host OpenClaw default provider first
 - if Mira is running inside a named OpenClaw workspace such as `workspace-openclaw-agents/main/...`, auto-detect that profile and check paths like `~/.openclaw-main/openclaw.json`
+- accept host defaults that OpenClaw resolves from built-in providers or `agents/<id>/agent/models.json`, even when `openclaw.json` itself does not spell out a custom `models.providers` block
 - fall back to `OPENAI_API_KEY` or the repo `MIRA_OPENCLAW_PROVIDER_*` env values only if the host has no usable default provider
 - fail fast with next-step guidance if neither source is usable
 

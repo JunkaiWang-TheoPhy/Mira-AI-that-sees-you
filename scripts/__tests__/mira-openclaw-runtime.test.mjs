@@ -751,6 +751,109 @@ test("bootstrapMiraOpenClawRuntime inherits the host default model resolved by O
   }
 });
 
+test("bootstrapMiraOpenClawRuntime accepts a built-in host provider that is only declared via the default model ref", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-built-in-provider-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const hostConfigPath = join(root, "host-openclaw.json");
+  writeFileSync(
+    hostConfigPath,
+    JSON.stringify({
+      agents: {
+        defaults: {
+          model: {
+            primary: "openai/gpt-5.4",
+          },
+        },
+      },
+    }, null, 2),
+  );
+
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
+  const previousRepoProviderApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.OPENCLAW_CONFIG_PATH = hostConfigPath;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+    const result = bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args) {
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "models"
+          && args[1] === "status"
+        ) {
+          return {
+            status: 0,
+            stdout: buildOpenClawModelsStatus({
+              configPath: hostConfigPath,
+              defaultModel: "openai/gpt-5.4",
+              resolvedDefault: "openai/gpt-5.4",
+              missingProvidersInUse: [],
+            }),
+            stderr: "",
+          };
+        }
+
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const generatedConfig = JSON.parse(readFileSync(result.configPath, "utf8"));
+    assert.equal(generatedConfig.agents.defaults.model.primary, "openai/gpt-5.4");
+    assert.deepEqual(generatedConfig.models.providers, {});
+
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args) {
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "models"
+          && args[1] === "status"
+        ) {
+          return {
+            status: 0,
+            stdout: buildOpenClawModelsStatus({
+              configPath: hostConfigPath,
+              defaultModel: "openai/gpt-5.4",
+              resolvedDefault: "openai/gpt-5.4",
+              missingProvidersInUse: [],
+            }),
+            stderr: "",
+          };
+        }
+
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+    assert.equal(inspection.ok, true);
+    assert.equal(inspection.provider.source, "host-default");
+    assert.equal(inspection.provider.primaryModel, "openai/gpt-5.4");
+  } finally {
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = previousOpenAiApiKey;
+    }
+    if (previousRepoProviderApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoProviderApiKey;
+    }
+  }
+});
+
 test("bootstrapMiraOpenClawRuntime accepts OPENAI_API_KEY as the repo fallback provider when host OpenClaw has no usable provider", () => {
   const root = mkdtempSync(join(tmpdir(), "mira-openclaw-openai-fallback-"));
   writeNotificationRouterFixture(root);

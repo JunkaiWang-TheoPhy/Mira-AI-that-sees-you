@@ -35,6 +35,39 @@ const DEFAULT_ROOT = resolve(__filename, "..", "..");
 const DEFAULT_OPENAI_PROVIDER_ID = "openai";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_OPENAI_PROVIDER_API = "openai-responses";
+const BUILTIN_PROVIDER_IDS = new Set([
+  "openai",
+  "anthropic",
+  "openai-codex",
+  "opencode",
+  "opencode-go",
+  "google",
+  "google-vertex",
+  "google-gemini-cli",
+  "zai",
+  "vercel-ai-gateway",
+  "kilocode",
+  "openrouter",
+  "qwen-portal",
+  "volcengine",
+  "volcengine-plan",
+  "byteplus",
+  "byteplus-plan",
+  "ollama",
+  "xai",
+  "mistral",
+  "groq",
+  "cerebras",
+  "github-copilot",
+  "huggingface",
+  "together",
+  "venice",
+  "xiaomi",
+  "nvidia",
+  "cloudflare-ai-gateway",
+  "modelstudio",
+  "qianfan",
+]);
 
 export function resolveMiraOpenClawPaths(rootDir = DEFAULT_ROOT) {
   const runtimeDir = join(rootDir, ".mira-runtime", "mira-openclaw");
@@ -161,7 +194,9 @@ function buildGeneratedOpenClawConfig(
   });
 
   const providerConfig =
-    providerSelection.source === "host-default" || providerSelection.source === "repo-env"
+    providerSelection.source === "host-default" && providerSelection.builtInCatalog
+      ? {}
+      : providerSelection.source === "host-default" || providerSelection.source === "repo-env"
       ? {
           [providerSelection.providerId]: providerSelection.provider,
         }
@@ -393,6 +428,57 @@ function queryHostOpenClawModelsStatus(
   }
 }
 
+function loadHostOpenClawAgentModels(hostModelsStatus) {
+  const agentDir = hostModelsStatus?.agentDir;
+  if (!agentDir) {
+    return {
+      providers: null,
+      error: null,
+    };
+  }
+
+  const modelsPath = join(agentDir, "models.json");
+  if (!existsSync(modelsPath)) {
+    return {
+      providers: null,
+      error: null,
+    };
+  }
+
+  try {
+    const modelsConfig = JSON.parse(readFileSync(modelsPath, "utf8"));
+    const providers = modelsConfig?.providers;
+    if (!providers || typeof providers !== "object" || Array.isArray(providers)) {
+      return {
+        providers: null,
+        error: null,
+      };
+    }
+
+    return {
+      providers,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      providers: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function isBuiltInProviderId(providerId) {
+  return typeof providerId === "string" && BUILTIN_PROVIDER_IDS.has(providerId);
+}
+
+function isMissingProviderInUse(hostModelsStatus, providerId) {
+  return Boolean(
+    providerId
+    && Array.isArray(hostModelsStatus?.auth?.missingProvidersInUse)
+    && hostModelsStatus.auth.missingProvidersInUse.includes(providerId),
+  );
+}
+
 function shouldProbeHostWithOpenClawCli(paths, hostConfigState) {
   if (hostConfigState.config) {
     return true;
@@ -430,6 +516,7 @@ function resolveHostDefaultProvider(
   let hostConfigState = loadHostOpenClawConfig(paths);
   let hostModelsStatusState = null;
   let hostModelsStatus = null;
+  let hostAgentModelsState = null;
 
   function ensureHostModelsStatus() {
     if (hostModelsStatusState) {
@@ -457,23 +544,62 @@ function resolveHostDefaultProvider(
       && hostModelsStatus.configPath !== hostConfigState.configPath
     ) {
       hostConfigState = loadHostOpenClawConfigFile(paths, hostModelsStatus.configPath);
-      hostConfig = hostConfigState.config;
-      providers = hostConfig?.models?.providers;
     }
 
     return hostModelsStatusState;
   }
 
+  function ensureHostAgentModels() {
+    if (hostAgentModelsState) {
+      return hostAgentModelsState;
+    }
+
+    ensureHostModelsStatus();
+    hostAgentModelsState = loadHostOpenClawAgentModels(hostModelsStatus);
+    return hostAgentModelsState;
+  }
+
+  const hostAgentModels = ensureHostAgentModels();
   let hostConfig = hostConfigState.config;
-  let providers = hostConfig?.models?.providers;
+  const configProviders = hostConfig?.models?.providers;
+  const agentProviders = hostAgentModels.providers;
+  let providers =
+    configProviders && typeof configProviders === "object" && !Array.isArray(configProviders)
+      ? {
+          ...(agentProviders ?? {}),
+          ...configProviders,
+        }
+      : agentProviders;
+  const primaryRef = parseProviderModelRef(hostConfig?.agents?.defaults?.model?.primary);
+  const resolvedDefaultRef = primaryRef ?? parseProviderModelRef(
+    hostModelsStatus?.resolvedDefault || hostModelsStatus?.defaultModel,
+  );
 
   if (!providers || typeof providers !== "object" || Array.isArray(providers)) {
+    if (
+      resolvedDefaultRef
+      && isBuiltInProviderId(resolvedDefaultRef.providerId)
+      && !isMissingProviderInUse(hostModelsStatus, resolvedDefaultRef.providerId)
+    ) {
+      return {
+        source: "host-default",
+        configPath: hostConfigState.configPath,
+        providerId: resolvedDefaultRef.providerId,
+        provider: null,
+        modelId: resolvedDefaultRef.modelId,
+        modelName: resolvedDefaultRef.modelId,
+        primary: `${resolvedDefaultRef.providerId}/${resolvedDefaultRef.modelId}`,
+        builtInCatalog: true,
+      };
+    }
+
     const cliStatus = ensureHostModelsStatus();
     return {
       source: "none",
       configPath: hostConfigState.configPath,
       detail:
         cliStatus.error
+        || ensureHostAgentModels().error
         || hostConfigState.error
         || "host OpenClaw config does not declare any providers",
     };
@@ -481,19 +607,12 @@ function resolveHostDefaultProvider(
 
   let providerId = null;
   let modelId = null;
-  const primaryRef = parseProviderModelRef(hostConfig?.agents?.defaults?.model?.primary);
   if (primaryRef) {
     providerId = primaryRef.providerId;
     modelId = primaryRef.modelId;
-  } else {
-    ensureHostModelsStatus();
-    const resolvedDefaultRef = parseProviderModelRef(
-      hostModelsStatus?.resolvedDefault || hostModelsStatus?.defaultModel,
-    );
-    if (resolvedDefaultRef) {
-      providerId = resolvedDefaultRef.providerId;
-      modelId = resolvedDefaultRef.modelId;
-    }
+  } else if (resolvedDefaultRef) {
+    providerId = resolvedDefaultRef.providerId;
+    modelId = resolvedDefaultRef.modelId;
   }
 
   if (!providerId) {
@@ -518,6 +637,22 @@ function resolveHostDefaultProvider(
 
   const provider = providers[providerId];
   if (!provider || typeof provider !== "object") {
+    if (
+      isBuiltInProviderId(providerId)
+      && !isMissingProviderInUse(hostModelsStatus, providerId)
+    ) {
+      return {
+        source: "host-default",
+        configPath: hostConfigState.configPath,
+        providerId,
+        provider: null,
+        modelId,
+        modelName: modelId,
+        primary: `${providerId}/${modelId}`,
+        builtInCatalog: true,
+      };
+    }
+
     return {
       source: "none",
       configPath: hostConfigState.configPath,
