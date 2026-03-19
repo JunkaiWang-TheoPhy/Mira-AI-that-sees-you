@@ -32,6 +32,8 @@ test("buildRepoDeployManifest describes the repo default entrypoint and both dep
   assert.equal(manifest.platformManifests.dockerIgnore, ".dockerignore");
   assert.equal(manifest.platformManifests.composeFile, "compose.yaml");
   assert.equal(manifest.platformManifests.procfile, "Procfile");
+  assert.equal(manifest.containerProfiles.default, "notification-router");
+  assert.equal(manifest.containerProfiles.optionalIntegrated, "mira-openclaw");
   assert.equal(
     manifest.profiles["notification-router"].commands.deploy,
     "npm run deploy:notification-router",
@@ -55,6 +57,26 @@ test("buildRepoDeployManifest describes the repo default entrypoint and both dep
   assert.equal(
     manifest.profiles["mira-openclaw"].providerResolution.mode,
     "host-default-or-repo-fallback",
+  );
+  assert.equal(
+    manifest.profiles["mira-openclaw"].providerResolution.hostProfileEnv,
+    "MIRA_OPENCLAW_HOST_PROFILE",
+  );
+  assert.equal(
+    manifest.profiles["mira-openclaw"].providerResolution.hostConfigPathOverrideEnv,
+    "MIRA_OPENCLAW_HOST_CONFIG_PATH",
+  );
+  assert.equal(
+    manifest.profiles["mira-openclaw"].providerResolution.workspaceProfileAutoDetect,
+    true,
+  );
+  assert.equal(
+    manifest.profiles["mira-openclaw"].providerResolution.fallbackEnv.includes("OPENAI_API_KEY"),
+    true,
+  );
+  assert.equal(
+    manifest.profiles["mira-openclaw"].providerResolution.fallbackEnv.includes("OPENAI_BASE_URL"),
+    true,
   );
 });
 

@@ -19,3 +19,18 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
+
+  mira-openclaw:
+    profiles:
+      - mira-openclaw
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      MIRA_DEPLOY_PROFILE: mira-openclaw
+      MIRA_OPENCLAW_GATEWAY_PORT: 18890
+      MIRA_OPENCLAW_ENABLE_NOTIFICATION_ROUTER: "true"
+      MIRA_OPENCLAW_PROVIDER_API_KEY: ${MIRA_OPENCLAW_PROVIDER_API_KEY:?set MIRA_OPENCLAW_PROVIDER_API_KEY in your shell or .env}
+    ports:
+      - "18890:18890"
+      - "3302:3302"

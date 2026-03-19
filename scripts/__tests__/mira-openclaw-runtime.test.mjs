@@ -442,6 +442,195 @@ test("bootstrapMiraOpenClawRuntime inherits the host default provider when repo 
   }
 });
 
+test("bootstrapMiraOpenClawRuntime inherits the host provider from the active OpenClaw profile directory", () => {
+  const fakeHome = mkdtempSync(join(tmpdir(), "mira-openclaw-profile-home-"));
+  const root = join(
+    fakeHome,
+    ".openclaw",
+    "workspace-openclaw-agents",
+    "main",
+    "Mira-AI-that-sees-you",
+  );
+  mkdirSync(root, { recursive: true });
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const profiledConfigPath = join(fakeHome, ".openclaw-main", "openclaw.json");
+  mkdirSync(join(profiledConfigPath, ".."), { recursive: true });
+  writeFileSync(
+    profiledConfigPath,
+    JSON.stringify({
+      models: {
+        mode: "merge",
+        providers: {
+          "profile-provider": {
+            baseUrl: "https://profile.example.com/v1",
+            apiKey: "profile-key",
+            api: "openai-responses",
+            models: [
+              {
+                id: "profile-model",
+                name: "profile-model",
+                reasoning: true,
+                input: ["text"],
+                contextWindow: 200000,
+                maxTokens: 8192,
+              },
+            ],
+          },
+        },
+      },
+      agents: {
+        defaults: {
+          model: {
+            primary: "profile-provider/profile-model",
+          },
+        },
+      },
+    }, null, 2),
+  );
+
+  const previousHome = process.env.HOME;
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousHostProfile = process.env.MIRA_OPENCLAW_HOST_PROFILE;
+  const previousRepoApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.HOME = fakeHome;
+    delete process.env.OPENCLAW_CONFIG_PATH;
+    delete process.env.MIRA_OPENCLAW_HOST_PROFILE;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+    const result = bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const generatedConfig = JSON.parse(readFileSync(result.configPath, "utf8"));
+    assert.deepEqual(Object.keys(generatedConfig.models.providers), ["profile-provider"]);
+    assert.equal(generatedConfig.models.providers["profile-provider"].apiKey, "profile-key");
+    assert.equal(
+      generatedConfig.agents.defaults.model.primary,
+      "profile-provider/profile-model",
+    );
+
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+    });
+    assert.equal(inspection.ok, true);
+    assert.equal(inspection.provider.hostConfigPath, profiledConfigPath);
+    assert.equal(inspection.provider.source, "host-default");
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousHostProfile === undefined) {
+      delete process.env.MIRA_OPENCLAW_HOST_PROFILE;
+    } else {
+      process.env.MIRA_OPENCLAW_HOST_PROFILE = previousHostProfile;
+    }
+    if (previousRepoApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoApiKey;
+    }
+  }
+});
+
+test("bootstrapMiraOpenClawRuntime accepts OPENAI_API_KEY as the repo fallback provider when host OpenClaw has no usable provider", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-openai-fallback-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousRepoApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  const previousProviderId = process.env.MIRA_OPENCLAW_PROVIDER_ID;
+  const previousProviderBaseUrl = process.env.MIRA_OPENCLAW_PROVIDER_BASE_URL;
+  const previousProviderApi = process.env.MIRA_OPENCLAW_PROVIDER_API;
+  const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
+  const previousOpenAiBaseUrl = process.env.OPENAI_BASE_URL;
+
+  try {
+    process.env.OPENCLAW_CONFIG_PATH = TEST_MISSING_HOST_CONFIG_PATH;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_ID;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_BASE_URL;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API;
+    process.env.OPENAI_API_KEY = "ambient-openai-key";
+    process.env.OPENAI_BASE_URL = "https://openai-proxy.example.com/v1";
+
+    const result = bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const generatedConfig = JSON.parse(readFileSync(result.configPath, "utf8"));
+    assert.deepEqual(Object.keys(generatedConfig.models.providers), ["openai"]);
+    assert.equal(generatedConfig.models.providers.openai.apiKey, "ambient-openai-key");
+    assert.equal(
+      generatedConfig.models.providers.openai.baseUrl,
+      "https://openai-proxy.example.com/v1",
+    );
+    assert.equal(generatedConfig.models.providers.openai.api, "openai-responses");
+    assert.equal(generatedConfig.agents.defaults.model.primary, "openai/gpt-5.4");
+
+    const inspection = inspectMiraOpenClawRuntime({ rootDir: root });
+    assert.equal(inspection.ok, true);
+    assert.equal(inspection.provider.source, "repo-env");
+    assert.ok(!inspection.issues.some((issue) => issue.includes("provider")));
+    assert.ok(!inspection.issues.some((issue) => issue.includes("API key")));
+  } finally {
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousRepoApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoApiKey;
+    }
+    if (previousProviderId === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_ID;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_ID = previousProviderId;
+    }
+    if (previousProviderBaseUrl === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_BASE_URL;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_BASE_URL = previousProviderBaseUrl;
+    }
+    if (previousProviderApi === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API = previousProviderApi;
+    }
+    if (previousOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = previousOpenAiApiKey;
+    }
+    if (previousOpenAiBaseUrl === undefined) {
+      delete process.env.OPENAI_BASE_URL;
+    } else {
+      process.env.OPENAI_BASE_URL = previousOpenAiBaseUrl;
+    }
+  }
+});
+
 test("doctorMiraOpenClawRuntime validates the generated config through openclaw", () => {
   const root = mkdtempSync(join(tmpdir(), "mira-openclaw-doctor-"));
   writeNotificationRouterFixture(root);
@@ -594,7 +783,7 @@ test("startMiraOpenClawRuntime fails fast with guidance when neither the host no
           return { status: 0, stdout: "", stderr: "" };
         },
       }),
-      /Configure a default provider in host OpenClaw|set MIRA_OPENCLAW_PROVIDER_API_KEY/,
+      /configure a default provider in host OpenClaw|OPENAI_API_KEY|MIRA_OPENCLAW_PROVIDER_API_KEY/i,
     );
   } finally {
     if (previousStartCommand === undefined) {

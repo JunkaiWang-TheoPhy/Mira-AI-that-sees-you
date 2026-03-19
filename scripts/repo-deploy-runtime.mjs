@@ -106,6 +106,10 @@ export function buildRepoDeployManifest(rootDir = DEFAULT_ROOT) {
       composeFile: "compose.yaml",
       procfile: "Procfile",
     },
+    containerProfiles: {
+      default: "notification-router",
+      optionalIntegrated: "mira-openclaw",
+    },
     profileSelectorEnv: PROFILE_ENV,
     defaultProfile: "mira-openclaw",
     defaultCommands: {
@@ -154,7 +158,12 @@ export function buildRepoDeployManifest(rootDir = DEFAULT_ROOT) {
         providerResolution: {
           mode: "host-default-or-repo-fallback",
           hostConfigPathEnv: "OPENCLAW_CONFIG_PATH",
+          hostProfileEnv: "MIRA_OPENCLAW_HOST_PROFILE",
+          hostConfigPathOverrideEnv: "MIRA_OPENCLAW_HOST_CONFIG_PATH",
+          workspaceProfileAutoDetect: true,
           fallbackEnv: [
+            "OPENAI_API_KEY",
+            "OPENAI_BASE_URL",
             "MIRA_OPENCLAW_PROVIDER_API_KEY",
             "MIRA_OPENCLAW_PROVIDER_ID",
             "MIRA_OPENCLAW_PROVIDER_BASE_URL",
@@ -164,6 +173,8 @@ export function buildRepoDeployManifest(rootDir = DEFAULT_ROOT) {
           ],
         },
         optionalEnv: [
+          "OPENAI_API_KEY",
+          "OPENAI_BASE_URL",
           "MIRA_OPENCLAW_PROVIDER_API_KEY",
           "MIRA_OPENCLAW_PROVIDER_ID",
           "MIRA_OPENCLAW_PROVIDER_BASE_URL",

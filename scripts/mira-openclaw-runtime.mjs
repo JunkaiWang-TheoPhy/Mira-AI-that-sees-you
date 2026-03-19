@@ -32,6 +32,9 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const DEFAULT_ROOT = resolve(__filename, "..", "..");
+const DEFAULT_OPENAI_PROVIDER_ID = "openai";
+const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
+const DEFAULT_OPENAI_PROVIDER_API = "openai-responses";
 
 export function resolveMiraOpenClawPaths(rootDir = DEFAULT_ROOT) {
   const runtimeDir = join(rootDir, ".mira-runtime", "mira-openclaw");
@@ -198,6 +201,56 @@ function buildGeneratedOpenClawConfig(paths, installedConfig = null) {
   return mergeInstalledPluginMetadata(generatedConfig, installedConfig);
 }
 
+function inferOpenClawProfileFromStateDir(stateDir) {
+  if (!stateDir) {
+    return null;
+  }
+
+  const normalizedStateDir = stateDir.replaceAll("\\", "/").replace(/\/+$/u, "");
+  const lastSegment = normalizedStateDir.split("/").at(-1) ?? "";
+  if (lastSegment === ".openclaw") {
+    return null;
+  }
+  if (lastSegment.startsWith(".openclaw-")) {
+    return lastSegment.slice(".openclaw-".length) || null;
+  }
+
+  return null;
+}
+
+function inferOpenClawProfileFromWorkspacePath(candidatePath) {
+  if (!candidatePath) {
+    return null;
+  }
+
+  const normalizedPath = candidatePath.replaceAll("\\", "/");
+  const match = normalizedPath.match(/\/workspace-openclaw-agents\/([^/]+)(?:\/|$)/u);
+  return match?.[1] ?? null;
+}
+
+function resolveHostOpenClawProfile(paths) {
+  const explicitProfile =
+    process.env.MIRA_OPENCLAW_HOST_PROFILE?.trim()
+    || process.env.OPENCLAW_PROFILE?.trim();
+  if (explicitProfile) {
+    return explicitProfile;
+  }
+
+  const stateDirProfile = inferOpenClawProfileFromStateDir(process.env.OPENCLAW_STATE_DIR?.trim());
+  if (stateDirProfile) {
+    return stateDirProfile;
+  }
+
+  const workspaceProfile =
+    inferOpenClawProfileFromWorkspacePath(paths.rootDir)
+    || inferOpenClawProfileFromWorkspacePath(process.cwd());
+  if (workspaceProfile) {
+    return workspaceProfile;
+  }
+
+  return null;
+}
+
 function resolveHostOpenClawConfigPath(paths) {
   const explicitHostPath = process.env.MIRA_OPENCLAW_HOST_CONFIG_PATH?.trim();
   if (explicitHostPath) {
@@ -207,6 +260,11 @@ function resolveHostOpenClawConfigPath(paths) {
   const inheritedConfigPath = process.env.OPENCLAW_CONFIG_PATH?.trim();
   if (inheritedConfigPath && inheritedConfigPath !== paths.generatedConfigPath) {
     return inheritedConfigPath;
+  }
+
+  const hostProfile = resolveHostOpenClawProfile(paths);
+  if (hostProfile) {
+    return join(homedir(), `.openclaw-${hostProfile}`, "openclaw.json");
   }
 
   return join(homedir(), ".openclaw", "openclaw.json");
@@ -327,14 +385,22 @@ function resolveHostDefaultProvider(paths) {
 function resolveRepoProviderFallback(template, env) {
   const [templateProviderId, templateProvider] = Object.entries(template.models.providers)[0];
   const templateModel = templateProvider.models[0];
+  const repoProviderApiKey = isPlaceholderValue(env.MIRA_OPENCLAW_PROVIDER_API_KEY)
+    ? null
+    : env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  const openAiApiKey = isPlaceholderValue(env.OPENAI_API_KEY)
+    ? null
+    : env.OPENAI_API_KEY;
 
-  if (isPlaceholderValue(env.MIRA_OPENCLAW_PROVIDER_API_KEY)) {
+  if (!repoProviderApiKey && !openAiApiKey) {
     return {
       source: "none",
     };
   }
 
-  const providerId = env.MIRA_OPENCLAW_PROVIDER_ID || templateProviderId;
+  const providerId = resolveRepoProviderId(env, templateProviderId);
+  const providerBaseUrl = resolveRepoProviderBaseUrl(env, templateProvider.baseUrl);
+  const providerApi = resolveRepoProviderApi(env, templateProvider.api);
   const modelId = env.MIRA_OPENCLAW_MODEL_ID || templateModel.id;
   const modelName = env.MIRA_OPENCLAW_MODEL_NAME || templateModel.name || modelId;
 
@@ -343,9 +409,9 @@ function resolveRepoProviderFallback(template, env) {
     providerId,
     provider: {
       ...templateProvider,
-      baseUrl: env.MIRA_OPENCLAW_PROVIDER_BASE_URL || templateProvider.baseUrl,
-      apiKey: env.MIRA_OPENCLAW_PROVIDER_API_KEY || templateProvider.apiKey,
-      api: env.MIRA_OPENCLAW_PROVIDER_API || templateProvider.api,
+      baseUrl: providerBaseUrl,
+      apiKey: repoProviderApiKey || openAiApiKey,
+      api: providerApi,
       models: [
         {
           ...templateModel,
@@ -360,6 +426,49 @@ function resolveRepoProviderFallback(template, env) {
   };
 }
 
+function resolveRepoProviderOverride(value, templateValue) {
+  if (isPlaceholderValue(value)) {
+    return null;
+  }
+
+  if (
+    typeof value === "string"
+    && typeof templateValue === "string"
+    && value.trim() === templateValue.trim()
+  ) {
+    return null;
+  }
+
+  return value || null;
+}
+
+function resolveRepoProviderId(env, templateProviderId) {
+  return (
+    resolveRepoProviderOverride(env.MIRA_OPENCLAW_PROVIDER_ID, templateProviderId)
+    || (!isPlaceholderValue(templateProviderId) ? templateProviderId : DEFAULT_OPENAI_PROVIDER_ID)
+  );
+}
+
+function resolveRepoProviderBaseUrl(env, templateBaseUrl) {
+  return (
+    resolveRepoProviderOverride(env.MIRA_OPENCLAW_PROVIDER_BASE_URL, templateBaseUrl)
+    || resolveRepoProviderOverride(env.OPENAI_BASE_URL)
+    || (!looksLikeExampleValue(templateBaseUrl) ? templateBaseUrl : DEFAULT_OPENAI_BASE_URL)
+  );
+}
+
+function resolveRepoProviderApi(env, templateProviderApi) {
+  return (
+    resolveRepoProviderOverride(env.MIRA_OPENCLAW_PROVIDER_API, templateProviderApi)
+    || templateProviderApi
+    || DEFAULT_OPENAI_PROVIDER_API
+  );
+}
+
+function looksLikeExampleValue(value) {
+  return typeof value === "string" && value.toLowerCase().includes("example.com");
+}
+
 function buildMissingProviderGuidance(providerSelection) {
   const hostLocation = providerSelection.hostConfigPath
     ? ` (${providerSelection.hostConfigPath})`
@@ -370,7 +479,7 @@ function buildMissingProviderGuidance(providerSelection) {
 
   return [
     `OpenClaw has no usable provider configuration.${detail}`,
-    `Next step: configure a default provider in host OpenClaw${hostLocation} so Mira can inherit it, or set MIRA_OPENCLAW_PROVIDER_API_KEY in the repo .env.local to use the repo fallback provider.`,
+    `Next step: configure a default provider in host OpenClaw${hostLocation} so Mira can inherit it, or set OPENAI_API_KEY or MIRA_OPENCLAW_PROVIDER_API_KEY in the repo .env.local to use the repo fallback provider.`,
   ].join(" ");
 }
 

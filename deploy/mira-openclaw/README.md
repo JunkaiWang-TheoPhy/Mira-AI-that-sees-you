@@ -63,7 +63,8 @@ cp deploy/repo.env.example .env.local
 # edit .env.local
 # keep MIRA_DEPLOY_PROFILE=mira-openclaw
 # leave MIRA_OPENCLAW_PROVIDER_API_KEY=replace-me if the host OpenClaw already
-# has a usable default provider; otherwise set a real repo fallback key
+# has a usable default provider; otherwise set OPENAI_API_KEY or the
+# MIRA_OPENCLAW_PROVIDER_* repo fallback values
 npm start
 ```
 
@@ -75,6 +76,13 @@ npm run deploy
 
 The foreground `npm start` path is the platform-friendly default when the host expects the main process to stay attached.
 
+Container path:
+
+- [../../Dockerfile](../../Dockerfile) now bundles the `openclaw` CLI
+- override `MIRA_DEPLOY_PROFILE=mira-openclaw` to switch the same image from router-first startup into the integrated stack
+- provide either a host OpenClaw default provider or repo fallback `OPENAI_API_KEY` / `MIRA_OPENCLAW_PROVIDER_*` env values
+- [../../compose.yaml](../../compose.yaml) exposes an optional `mira-openclaw` compose profile for this path
+
 The bootstrap copies [env.example](./env.example) into:
 
 - `.mira-runtime/mira-openclaw/.env.local`
@@ -82,11 +90,19 @@ The bootstrap copies [env.example](./env.example) into:
 Provider resolution order is now:
 
 - inherit the host OpenClaw default provider first
-- fall back to the repo `MIRA_OPENCLAW_PROVIDER_*` env values only if the host has no usable default provider
+- if Mira is running inside a named OpenClaw workspace such as `workspace-openclaw-agents/main/...`, auto-detect that profile and check paths like `~/.openclaw-main/openclaw.json`
+- fall back to `OPENAI_API_KEY` or the repo `MIRA_OPENCLAW_PROVIDER_*` env values only if the host has no usable default provider
 - fail fast with next-step guidance if neither source is usable
+
+Optional host-provider overrides:
+
+- `MIRA_OPENCLAW_HOST_PROFILE`
+- `MIRA_OPENCLAW_HOST_CONFIG_PATH`
 
 Only set this when you need the repo fallback provider path:
 
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
 - `MIRA_OPENCLAW_PROVIDER_API_KEY`
 
 Optional overrides:

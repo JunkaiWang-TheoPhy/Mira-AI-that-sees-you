@@ -1,7 +1,9 @@
 # Mira Released Version
 
-Mira is a companion-style agent release built on OpenClaw.
+> 有些关心 不需要开口
 
+
+Mira is a companion-style agent release built on OpenClaw.
 
 This directory is the staging root for a standalone public repository that will package Mira as:
 
@@ -34,7 +36,8 @@ cp deploy/repo.env.example .env.local
 # edit .env.local
 # keep MIRA_DEPLOY_PROFILE=mira-openclaw for the default integrated stack
 # leave MIRA_OPENCLAW_PROVIDER_API_KEY=replace-me if the host OpenClaw already
-# has a usable default provider; otherwise set a real repo fallback key
+# has a usable default provider; otherwise set OPENAI_API_KEY or the
+# MIRA_OPENCLAW_PROVIDER_* repo fallback values
 # or set MIRA_DEPLOY_PROFILE=notification-router for router-only
 
 npm start
@@ -83,7 +86,9 @@ The repo-level machine-readable deploy contract now lives at:
 For the integrated `mira-openclaw` profile, provider resolution is now host-first:
 
 - inherit the host OpenClaw default provider when one is already configured
+- auto-detect named host profiles such as `main` from OpenClaw workspace paths and look under paths like `~/.openclaw-main/openclaw.json`
 - fall back to repo `MIRA_OPENCLAW_PROVIDER_*` env values only when the host has no usable default provider
+- allow explicit overrides through `MIRA_OPENCLAW_HOST_PROFILE` or `MIRA_OPENCLAW_HOST_CONFIG_PATH`
 - fail fast with guidance when neither source is configured
 
 ## Current Status
@@ -116,7 +121,8 @@ What is not fully migrated yet:
 Current container/platform scope:
 
 - [Dockerfile](./Dockerfile), [compose.yaml](./compose.yaml), [Procfile](./Procfile), and [render.yaml](./render.yaml) default to the `notification-router` profile
-- the full `mira-openclaw` stack still needs a custom image or host that already provides the `openclaw` CLI
+- the root [Dockerfile](./Dockerfile) now also bundles the `openclaw` CLI, so direct Docker/Compose users can override `MIRA_DEPLOY_PROFILE=mira-openclaw`
+- [render.yaml](./render.yaml) remains router-first because its health check is HTTP `/v1/health`
 
 So this directory should be read as:
 

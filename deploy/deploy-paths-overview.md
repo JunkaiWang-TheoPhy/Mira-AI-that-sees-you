@@ -28,6 +28,8 @@ Platform manifests now committed at the repo root:
 
 Those manifests default to the `notification-router` profile because that path does not require the `openclaw` CLI inside the container image.
 
+The committed [../Dockerfile](../Dockerfile) now also bundles the `openclaw` CLI, so direct Docker or Compose runs can override `MIRA_DEPLOY_PROFILE=mira-openclaw` when they also provide a usable provider configuration.
+
 Default root commands:
 
 ```bash
