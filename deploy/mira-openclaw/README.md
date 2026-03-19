@@ -76,6 +76,10 @@ npm run deploy
 
 The foreground `npm start` path is the platform-friendly default when the host expects the main process to stay attached.
 
+Direct profile commands such as `npm run doctor:mira-openclaw` and `npm run start:mira-openclaw`
+now also load the repo root `.env` and `.env.local` before the generated runtime-pack env file,
+so a single root `.env.local` can drive both the repo-level and profile-level entrypoints.
+
 Container path:
 
 - [../../Dockerfile](../../Dockerfile) now bundles the `openclaw` CLI

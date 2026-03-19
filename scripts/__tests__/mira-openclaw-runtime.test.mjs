@@ -218,6 +218,41 @@ function writeHostOpenClawConfig(root, {
   return hostConfigPath;
 }
 
+function buildOpenClawModelsStatus({
+  configPath,
+  defaultModel = "host-provider/host-model",
+  resolvedDefault = defaultModel,
+  missingProvidersInUse = [],
+} = {}) {
+  return JSON.stringify({
+    configPath,
+    agentDir: "/tmp/openclaw-agent",
+    defaultModel,
+    resolvedDefault,
+    fallbacks: [],
+    imageModel: null,
+    imageFallbacks: [],
+    aliases: {},
+    allowed: [],
+    auth: {
+      storePath: "/tmp/openclaw-agent/auth-profiles.json",
+      shellEnvFallback: {
+        enabled: false,
+        appliedKeys: [],
+      },
+      providersWithOAuth: [],
+      missingProvidersInUse,
+      providers: [],
+      unusableProfiles: [],
+      oauth: {
+        warnAfterMs: 86400000,
+        profiles: [],
+        providers: [],
+      },
+    },
+  }, null, 2);
+}
+
 test("bootstrapMiraOpenClawRuntime generates a local runtime pack and config manifest", () => {
   const root = mkdtempSync(join(tmpdir(), "mira-openclaw-runtime-"));
   writeNotificationRouterFixture(root);
@@ -548,6 +583,174 @@ test("bootstrapMiraOpenClawRuntime inherits the host provider from the active Op
   }
 });
 
+test("bootstrapMiraOpenClawRuntime accepts a host provider backed by OpenClaw auth storage even when apiKey is omitted from config", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-host-auth-store-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const hostConfigPath = writeHostOpenClawConfig(root, {
+    providerId: "host-provider",
+    apiKey: undefined,
+    modelId: "host-model",
+    modelName: "host-model",
+  });
+  const hostConfig = JSON.parse(readFileSync(hostConfigPath, "utf8"));
+  delete hostConfig.models.providers["host-provider"].apiKey;
+  writeFileSync(hostConfigPath, JSON.stringify(hostConfig, null, 2));
+
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousRepoProviderApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.OPENCLAW_CONFIG_PATH = hostConfigPath;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+    const result = bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args, options) {
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "models"
+          && args[1] === "status"
+        ) {
+          return {
+            status: 0,
+            stdout: buildOpenClawModelsStatus({
+              configPath: hostConfigPath,
+              defaultModel: "host-provider/host-model",
+              resolvedDefault: "host-provider/host-model",
+              missingProvidersInUse: [],
+            }),
+            stderr: "",
+          };
+        }
+
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const generatedConfig = JSON.parse(readFileSync(result.configPath, "utf8"));
+    assert.deepEqual(Object.keys(generatedConfig.models.providers), ["host-provider"]);
+    assert.equal(
+      generatedConfig.agents.defaults.model.primary,
+      "host-provider/host-model",
+    );
+
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+    });
+    assert.equal(inspection.ok, true);
+    assert.equal(inspection.provider.source, "host-default");
+  } finally {
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousRepoProviderApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoProviderApiKey;
+    }
+  }
+});
+
+test("bootstrapMiraOpenClawRuntime inherits the host default model resolved by OpenClaw CLI when the host config itself is ambiguous", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-host-cli-default-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const hostConfigPath = join(root, "host-openclaw.json");
+  writeFileSync(
+    hostConfigPath,
+    JSON.stringify({
+      models: {
+        mode: "merge",
+        providers: {
+          "anthropic": {
+            baseUrl: "https://api.anthropic.com",
+            models: [
+              {
+                id: "claude-sonnet-4-5",
+                name: "claude-sonnet-4-5",
+              },
+            ],
+          },
+          "openai": {
+            baseUrl: "https://api.openai.com/v1",
+            models: [
+              {
+                id: "gpt-5.4",
+                name: "gpt-5.4",
+              },
+            ],
+          },
+        },
+      },
+      agents: {
+        defaults: {},
+      },
+    }, null, 2),
+  );
+
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousRepoProviderApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
+
+  try {
+    process.env.OPENCLAW_CONFIG_PATH = hostConfigPath;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+
+    const result = bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args) {
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "models"
+          && args[1] === "status"
+        ) {
+          return {
+            status: 0,
+            stdout: buildOpenClawModelsStatus({
+              configPath: hostConfigPath,
+              defaultModel: "openai/gpt-5.4",
+              resolvedDefault: "openai/gpt-5.4",
+              missingProvidersInUse: [],
+            }),
+            stderr: "",
+          };
+        }
+
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const generatedConfig = JSON.parse(readFileSync(result.configPath, "utf8"));
+    assert.equal(generatedConfig.agents.defaults.model.primary, "openai/gpt-5.4");
+    assert.ok(generatedConfig.models.providers.openai);
+  } finally {
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousRepoProviderApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoProviderApiKey;
+    }
+    if (previousOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = previousOpenAiApiKey;
+    }
+  }
+});
+
 test("bootstrapMiraOpenClawRuntime accepts OPENAI_API_KEY as the repo fallback provider when host OpenClaw has no usable provider", () => {
   const root = mkdtempSync(join(tmpdir(), "mira-openclaw-openai-fallback-"));
   writeNotificationRouterFixture(root);
@@ -627,6 +830,92 @@ test("bootstrapMiraOpenClawRuntime accepts OPENAI_API_KEY as the repo fallback p
       delete process.env.OPENAI_BASE_URL;
     } else {
       process.env.OPENAI_BASE_URL = previousOpenAiBaseUrl;
+    }
+  }
+});
+
+test("bootstrapMiraOpenClawRuntime uses the repo root .env.local fallback for direct mira-openclaw commands", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-root-env-fallback-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+  writeFileSync(
+    join(root, ".env.local"),
+    [
+      "OPENAI_API_KEY=root-openai-key",
+      "OPENAI_BASE_URL=https://api.openai.com/v1",
+      "",
+    ].join("\n"),
+  );
+
+  const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
+  const previousOpenAiBaseUrl = process.env.OPENAI_BASE_URL;
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousHostProfile = process.env.MIRA_OPENCLAW_HOST_PROFILE;
+  const previousHostConfigOverride = process.env.MIRA_OPENCLAW_HOST_CONFIG_PATH;
+  const previousRepoProviderApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_BASE_URL;
+    delete process.env.OPENCLAW_CONFIG_PATH;
+    delete process.env.MIRA_OPENCLAW_HOST_PROFILE;
+    delete process.env.MIRA_OPENCLAW_HOST_CONFIG_PATH;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+    const result = bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const generatedConfig = JSON.parse(readFileSync(result.configPath, "utf8"));
+    assert.deepEqual(Object.keys(generatedConfig.models.providers), ["openai"]);
+    assert.equal(generatedConfig.models.providers.openai.apiKey, "root-openai-key");
+    assert.equal(
+      generatedConfig.models.providers.openai.baseUrl,
+      "https://api.openai.com/v1",
+    );
+    assert.equal(generatedConfig.agents.defaults.model.primary, "openai/gpt-5.4");
+
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+    });
+    assert.equal(inspection.ok, true);
+    assert.equal(inspection.provider.source, "repo-env");
+    assert.equal(inspection.provider.primaryModel, "openai/gpt-5.4");
+  } finally {
+    if (previousOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = previousOpenAiApiKey;
+    }
+    if (previousOpenAiBaseUrl === undefined) {
+      delete process.env.OPENAI_BASE_URL;
+    } else {
+      process.env.OPENAI_BASE_URL = previousOpenAiBaseUrl;
+    }
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousHostProfile === undefined) {
+      delete process.env.MIRA_OPENCLAW_HOST_PROFILE;
+    } else {
+      process.env.MIRA_OPENCLAW_HOST_PROFILE = previousHostProfile;
+    }
+    if (previousHostConfigOverride === undefined) {
+      delete process.env.MIRA_OPENCLAW_HOST_CONFIG_PATH;
+    } else {
+      process.env.MIRA_OPENCLAW_HOST_CONFIG_PATH = previousHostConfigOverride;
+    }
+    if (previousRepoProviderApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoProviderApiKey;
     }
   }
 });

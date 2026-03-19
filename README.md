@@ -73,6 +73,7 @@ npm run health:mira-openclaw
 Both deploy paths write runtime state under `.mira-runtime/`, including per-stack `runtime-process.json` and `runtime.log` files.
 
 Use `npm start` when the host expects a standard foreground process. Use `npm run deploy` when you want the repo to detach and manage its own background supervisor.
+The direct `mira-openclaw` profile commands also load the repo root `.env` and `.env.local`, so one root env file can drive both `npm start` and `npm run doctor:mira-openclaw`.
 
 The repo-level machine-readable deploy contract now lives at:
 
