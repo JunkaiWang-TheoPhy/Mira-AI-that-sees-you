@@ -37,3 +37,5 @@ It intentionally still does not ship:
 - broader orchestration outside the Hue package boundary
 
 Home Assistant remains Mira's default Philips Hue path. This package is an optional direct-adapter runtime that operators can wire deliberately later.
+
+If you need the operator-facing setup boundary for that later wiring, pair this doc with [../../../../deploy/module-home-assistant/README.md](../../../../deploy/module-home-assistant/README.md) and [../../../../deploy/module-home-assistant/hue-direct-adapter.md](../../../../deploy/module-home-assistant/hue-direct-adapter.md).

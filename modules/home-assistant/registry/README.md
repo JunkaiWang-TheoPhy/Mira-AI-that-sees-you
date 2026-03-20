@@ -34,3 +34,5 @@ The registry now carries two layers:
 
 - top-level `ecosystems` declarations for the 12 named Wave 2 entries
 - example `devices` used by current scene and policy skeletons
+
+This registry remains module-scoped documentation and sample data. It does not mean the current root `mira-openclaw` deploy path auto-loads these household mappings by default.

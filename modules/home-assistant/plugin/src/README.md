@@ -56,4 +56,8 @@ Currently not yet carried as release-side module runtime source:
 
 The canonical migration record now lives at:
 
-- [../../../docs/migration/source-to-release-mapping.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/source-to-release-mapping.md)
+- [../../../../docs/migration/source-to-release-mapping.md](../../../../docs/migration/source-to-release-mapping.md)
+
+For operator-facing setup, pair this source-boundary doc with:
+
+- [../../../../deploy/module-home-assistant/README.md](../../../../deploy/module-home-assistant/README.md)

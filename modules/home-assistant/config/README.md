@@ -29,7 +29,10 @@ This config example is intended to be read together with:
 - [../docs/scene-resolver-policy-coordination-spec.md](../docs/scene-resolver-policy-coordination-spec.md)
 - [../docs/home-ecosystem-support-matrix.md](../docs/home-ecosystem-support-matrix.md)
 - [../plugin/README.md](../plugin/README.md)
+- [../../../deploy/module-home-assistant/README.md](../../../deploy/module-home-assistant/README.md)
 
 It is a release-side illustrative example, not a claim that the current runtime has already consumed this exact JSON shape.
 
 The `homeAssistant.ecosystems` section now mirrors the 12 named Wave 2 support entries without claiming that all of them already have live direct-runtime support.
+
+It should be treated as a module-layer example on top of the current repo-level runtime contract, not as a standalone one-command deploy file.

@@ -22,3 +22,5 @@ The first release-side direct-adapter boundary now exists here:
 - [hue/README.md](./hue/README.md)
 
 This subtree remains additive. Home Assistant is still the default execution path for household actions.
+
+Operator-facing module wiring for these optional adapters should still be read together with [../../../deploy/module-home-assistant/README.md](../../../deploy/module-home-assistant/README.md).

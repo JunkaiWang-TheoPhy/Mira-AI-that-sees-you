@@ -50,13 +50,19 @@ The first optional direct-adapter boundary now also exists under:
 
 The first module onboarding path now exists through:
 
-- [examples/home-stack/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/home-stack/README.md)
-- [deploy/module-home-assistant/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/module-home-assistant/README.md)
+- [../../examples/home-stack/README.md](../../examples/home-stack/README.md)
+- [../../deploy/module-home-assistant/README.md](../../deploy/module-home-assistant/README.md)
 
 The first advanced module-plus-service composition path now also exists through:
 
-- [examples/home-stack-with-notification-router/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/home-stack-with-notification-router/README.md)
+- [../../examples/home-stack-with-notification-router/README.md](../../examples/home-stack-with-notification-router/README.md)
 
 The canonical migration record for this module now also lives at:
 
-- [../docs/migration/source-to-release-mapping.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/source-to-release-mapping.md)
+- [../../docs/migration/source-to-release-mapping.md](../../docs/migration/source-to-release-mapping.md)
+
+Current deploy boundary:
+
+- the repo-level one-command path still lives under [../../README.md](../../README.md) and [../../deploy/mira-openclaw/README.md](../../deploy/mira-openclaw/README.md)
+- that default integrated stack does not yet auto-wire this Home Assistant module as part of the current runnable main path
+- this module README and [../../deploy/module-home-assistant/README.md](../../deploy/module-home-assistant/README.md) describe the module contract and operator setup boundary instead

@@ -51,3 +51,9 @@ The Wave 2 ecosystem entry docs now live under:
 The first optional direct-adapter boundary referenced by these docs now lives at:
 
 - [../direct-adapters/hue/README.md](../direct-adapters/hue/README.md)
+
+Current deploy relationship:
+
+- these docs define module architecture and boundaries
+- the operator-facing module setup path lives at [../../../deploy/module-home-assistant/README.md](../../../deploy/module-home-assistant/README.md)
+- the current repo-level runnable default stack still lives at [../../../deploy/mira-openclaw/README.md](../../../deploy/mira-openclaw/README.md) and does not automatically include this module runtime

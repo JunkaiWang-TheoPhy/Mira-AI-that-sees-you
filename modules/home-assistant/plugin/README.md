@@ -28,6 +28,8 @@ The first release-side plugin source skeleton already exists under `src/`, inclu
 
 The current package and source-boundary companions now also exist:
 
-- [package.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/package.json)
-- [tsconfig.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/tsconfig.json)
-- [src/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/src/README.md)
+- [package.json](./package.json)
+- [tsconfig.json](./tsconfig.json)
+- [src/README.md](./src/README.md)
+
+This plugin package is still documented as a module-scoped boundary. The current default repo deploy path does not yet ship it as part of the one-command runnable main stack.

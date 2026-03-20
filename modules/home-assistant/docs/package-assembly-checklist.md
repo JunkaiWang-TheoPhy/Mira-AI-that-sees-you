@@ -6,14 +6,14 @@ This checklist defines what must be present before the release-side Home Assista
 
 ## Required Package Elements
 
-- [../README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/README.md)
-- [../config/home-assistant-module.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/config/home-assistant-module.example.json)
-- [../registry/devices.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/registry/devices.example.json)
-- [../plugin/package.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/package.json)
-- [../plugin/tsconfig.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/tsconfig.json)
-- [../plugin/src/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/src/README.md)
-- [module-runtime-contract.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/module-runtime-contract.md)
-- [scene-resolver-policy-coordination-spec.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/scene-resolver-policy-coordination-spec.md)
+- [../README.md](../README.md)
+- [../config/home-assistant-module.example.json](../config/home-assistant-module.example.json)
+- [../registry/devices.example.json](../registry/devices.example.json)
+- [../plugin/package.json](../plugin/package.json)
+- [../plugin/tsconfig.json](../plugin/tsconfig.json)
+- [../plugin/src/README.md](../plugin/src/README.md)
+- [module-runtime-contract.md](./module-runtime-contract.md)
+- [scene-resolver-policy-coordination-spec.md](./scene-resolver-policy-coordination-spec.md)
 
 ## What Still Counts As Incomplete
 
@@ -28,4 +28,6 @@ The release-side module should still be considered in-progress if any of these a
 
 ## Matching Deploy Path
 
-- [../../deploy/module-home-assistant/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/module-home-assistant/README.md)
+- [../../../deploy/module-home-assistant/README.md](../../../deploy/module-home-assistant/README.md)
+
+This checklist is about release-side module completeness. It is not a statement that the current root one-command deploy already bundles the module by default.

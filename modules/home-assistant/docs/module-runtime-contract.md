@@ -8,11 +8,11 @@ This document defines the current release-side runtime contract for Mira's first
 
 The current module contract depends on:
 
-- [../config/home-assistant-module.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/config/home-assistant-module.example.json)
-- [../registry/devices.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/registry/devices.example.json)
-- [../plugin/package.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/package.json)
-- [../plugin/src/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/src/README.md)
-- [scene-resolver-policy-coordination-spec.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/scene-resolver-policy-coordination-spec.md)
+- [../config/home-assistant-module.example.json](../config/home-assistant-module.example.json)
+- [../registry/devices.example.json](../registry/devices.example.json)
+- [../plugin/package.json](../plugin/package.json)
+- [../plugin/src/README.md](../plugin/src/README.md)
+- [scene-resolver-policy-coordination-spec.md](./scene-resolver-policy-coordination-spec.md)
 
 ## External Dependencies
 
@@ -46,8 +46,13 @@ This contract does not yet include:
 
 Example path:
 
-- [../../examples/home-stack/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/home-stack/README.md)
+- [../../../examples/home-stack/README.md](../../../examples/home-stack/README.md)
 
 Deploy path:
 
-- [../../deploy/module-home-assistant/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/module-home-assistant/README.md)
+- [../../../deploy/module-home-assistant/README.md](../../../deploy/module-home-assistant/README.md)
+
+Default repo runtime note:
+
+- the current repo-level `mira-openclaw` one-command path remains a core-plus-sidecar runnable stack
+- this module contract is a release-side module boundary and operator setup contract, not yet the default integrated runtime payload
