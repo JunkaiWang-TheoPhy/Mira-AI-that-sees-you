@@ -35,6 +35,7 @@ const DEFAULT_ROOT = resolve(__filename, "..", "..");
 const DEFAULT_OPENAI_PROVIDER_ID = "openai";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_OPENAI_PROVIDER_API = "openai-responses";
+const DEFAULT_OPENCLAW_CLI_TIMEOUT_MS = 3000;
 const BUILTIN_PROVIDER_IDS = new Set([
   "openai",
   "anthropic",
@@ -277,30 +278,43 @@ function inferOpenClawProfileFromWorkspacePath(candidatePath) {
   return match?.[1] ?? null;
 }
 
-function resolveHostOpenClawProfile(paths) {
+function resolveHostOpenClawProfileInfo(paths) {
   const explicitProfile =
     process.env.MIRA_OPENCLAW_HOST_PROFILE?.trim()
     || process.env.OPENCLAW_PROFILE?.trim();
   if (explicitProfile) {
-    return explicitProfile;
+    return {
+      profile: explicitProfile,
+      source: "explicit-profile",
+    };
   }
 
   const stateDirProfile = inferOpenClawProfileFromStateDir(process.env.OPENCLAW_STATE_DIR?.trim());
   if (stateDirProfile) {
-    return stateDirProfile;
+    return {
+      profile: stateDirProfile,
+      source: "state-dir",
+    };
   }
 
   const workspaceProfile =
     inferOpenClawProfileFromWorkspacePath(paths.rootDir)
     || inferOpenClawProfileFromWorkspacePath(process.cwd());
   if (workspaceProfile) {
-    return workspaceProfile;
+    return {
+      profile: workspaceProfile,
+      source: "workspace-profile",
+    };
   }
 
   return null;
 }
 
-function resolveHostOpenClawConfigPath(paths) {
+function resolveHostOpenClawProfile(paths) {
+  return resolveHostOpenClawProfileInfo(paths)?.profile ?? null;
+}
+
+function resolveExplicitHostOpenClawConfigPath(paths) {
   const explicitHostPath = process.env.MIRA_OPENCLAW_HOST_CONFIG_PATH?.trim();
   if (explicitHostPath) {
     return explicitHostPath;
@@ -311,16 +325,11 @@ function resolveHostOpenClawConfigPath(paths) {
     return inheritedConfigPath;
   }
 
-  const hostProfile = resolveHostOpenClawProfile(paths);
-  if (hostProfile) {
-    return join(homedir(), `.openclaw-${hostProfile}`, "openclaw.json");
-  }
-
-  return join(homedir(), ".openclaw", "openclaw.json");
+  return null;
 }
 
 function loadHostOpenClawConfig(paths) {
-  const configPath = resolveHostOpenClawConfigPath(paths);
+  const configPath = resolveExplicitHostOpenClawConfigPath(paths);
   return loadHostOpenClawConfigFile(paths, configPath);
 }
 
@@ -372,16 +381,45 @@ function resolveHostOpenClawStateDir(paths, hostConfigPath) {
     return explicitStateDir;
   }
 
+  if (typeof hostConfigPath === "string" && hostConfigPath.endsWith("/openclaw.json")) {
+    return dirname(hostConfigPath);
+  }
+
   const hostProfile = resolveHostOpenClawProfile(paths);
   if (hostProfile) {
     return join(homedir(), `.openclaw-${hostProfile}`);
   }
 
-  if (typeof hostConfigPath === "string" && hostConfigPath.endsWith("/openclaw.json")) {
-    return dirname(hostConfigPath);
+  return join(homedir(), ".openclaw");
+}
+
+function resolveHostConfigCandidates(paths) {
+  const candidates = [];
+  const seen = new Set();
+
+  function pushCandidate(source, configPath) {
+    if (!configPath || seen.has(configPath)) {
+      return;
+    }
+    seen.add(configPath);
+    candidates.push({
+      source,
+      configPath,
+      stateDir: resolveHostOpenClawStateDir(paths, configPath),
+    });
   }
 
-  return join(homedir(), ".openclaw");
+  pushCandidate("default-state-dir", join(homedir(), ".openclaw", "openclaw.json"));
+
+  const profileInfo = resolveHostOpenClawProfileInfo(paths);
+  if (profileInfo?.profile) {
+    pushCandidate(
+      profileInfo.source,
+      join(homedir(), `.openclaw-${profileInfo.profile}`, "openclaw.json"),
+    );
+  }
+
+  return candidates;
 }
 
 function queryHostOpenClawModelsStatus(
@@ -390,10 +428,11 @@ function queryHostOpenClawModelsStatus(
     openclawBinary,
     runCommand = runCommandSync,
     hostConfigPath,
+    hostStateDir,
   } = {},
 ) {
   const resolvedOpenClawBinary = resolveOpenClawBinary(openclawBinary);
-  if (!resolvedOpenClawBinary || !hostConfigPath) {
+  if (!resolvedOpenClawBinary) {
     return {
       status: null,
       error: null,
@@ -406,12 +445,25 @@ function queryHostOpenClawModelsStatus(
       ["models", "status", "--json"],
       {
         cwd: paths.rootDir,
-        env: {
-          ...process.env,
-          OPENCLAW_CONFIG_PATH: hostConfigPath,
-          OPENCLAW_STATE_DIR: resolveHostOpenClawStateDir(paths, hostConfigPath),
-        },
+        env: (() => {
+          const env = {
+            ...process.env,
+          };
+
+          if (hostConfigPath) {
+            env.OPENCLAW_CONFIG_PATH = hostConfigPath;
+          } else {
+            delete env.OPENCLAW_CONFIG_PATH;
+          }
+
+          if (hostStateDir) {
+            env.OPENCLAW_STATE_DIR = hostStateDir;
+          }
+
+          return env;
+        })(),
         stdio: "pipe",
+        timeoutMs: DEFAULT_OPENCLAW_CLI_TIMEOUT_MS,
       },
     );
     const stdout = (result.stdout ?? "").trim();
@@ -479,43 +531,31 @@ function isMissingProviderInUse(hostModelsStatus, providerId) {
   );
 }
 
-function shouldProbeHostWithOpenClawCli(paths, hostConfigState) {
-  if (hostConfigState.config) {
-    return true;
-  }
+function buildHostDiscovery(discovery, hostConfigState, hostModelsStatus, paths) {
+  const configPath = hostModelsStatus?.configPath ?? hostConfigState.configPath ?? discovery.configPath ?? null;
+  const stateDir = discovery.stateDir
+    || resolveHostOpenClawStateDir(paths, configPath);
 
-  if (process.env.MIRA_OPENCLAW_HOST_CONFIG_PATH?.trim()) {
-    return false;
-  }
-  if (process.env.MIRA_OPENCLAW_HOST_PROFILE?.trim()) {
-    return true;
-  }
-  if (process.env.OPENCLAW_PROFILE?.trim()) {
-    return true;
-  }
-
-  const inheritedConfigPath = process.env.OPENCLAW_CONFIG_PATH?.trim();
-  if (inheritedConfigPath && inheritedConfigPath !== paths.generatedConfigPath) {
-    return false;
-  }
-
-  if (process.env.OPENCLAW_STATE_DIR?.trim()) {
-    return true;
-  }
-
-  return resolveHostOpenClawProfile(paths) !== null;
+  return {
+    source: discovery.source,
+    configPath,
+    stateDir,
+    agentDir: hostModelsStatus?.agentDir ?? null,
+    resolvedDefault: hostModelsStatus?.resolvedDefault ?? hostModelsStatus?.defaultModel ?? null,
+  };
 }
 
-function resolveHostDefaultProvider(
+function probeHostDefaultProvider(
   paths,
+  discovery,
   {
     openclawBinary,
     runCommand = runCommandSync,
   } = {},
 ) {
-  let hostConfigState = loadHostOpenClawConfig(paths);
-  let hostModelsStatusState = null;
-  let hostModelsStatus = null;
+  let hostConfigState = loadHostOpenClawConfigFile(paths, discovery.configPath);
+  let hostModelsStatusState = discovery.hostModelsStatusState ?? null;
+  let hostModelsStatus = hostModelsStatusState?.status ?? null;
   let hostAgentModelsState = null;
 
   function ensureHostModelsStatus() {
@@ -523,19 +563,11 @@ function resolveHostDefaultProvider(
       return hostModelsStatusState;
     }
 
-    if (!shouldProbeHostWithOpenClawCli(paths, hostConfigState)) {
-      hostModelsStatusState = {
-        status: null,
-        error: null,
-      };
-      hostModelsStatus = null;
-      return hostModelsStatusState;
-    }
-
     hostModelsStatusState = queryHostOpenClawModelsStatus(paths, {
       openclawBinary,
       runCommand,
-      hostConfigPath: hostConfigState.configPath,
+      hostConfigPath: discovery.useConfigPathForCli ? hostConfigState.configPath : null,
+      hostStateDir: discovery.stateDir,
     });
     hostModelsStatus = hostModelsStatusState.status;
 
@@ -560,10 +592,10 @@ function resolveHostDefaultProvider(
   }
 
   const hostAgentModels = ensureHostAgentModels();
-  let hostConfig = hostConfigState.config;
+  const hostConfig = hostConfigState.config;
   const configProviders = hostConfig?.models?.providers;
   const agentProviders = hostAgentModels.providers;
-  let providers =
+  const providers =
     configProviders && typeof configProviders === "object" && !Array.isArray(configProviders)
       ? {
           ...(agentProviders ?? {}),
@@ -574,6 +606,7 @@ function resolveHostDefaultProvider(
   const resolvedDefaultRef = primaryRef ?? parseProviderModelRef(
     hostModelsStatus?.resolvedDefault || hostModelsStatus?.defaultModel,
   );
+  const discoveryInfo = buildHostDiscovery(discovery, hostConfigState, hostModelsStatus, paths);
 
   if (!providers || typeof providers !== "object" || Array.isArray(providers)) {
     if (
@@ -590,6 +623,7 @@ function resolveHostDefaultProvider(
         modelName: resolvedDefaultRef.modelId,
         primary: `${resolvedDefaultRef.providerId}/${resolvedDefaultRef.modelId}`,
         builtInCatalog: true,
+        discovery: discoveryInfo,
       };
     }
 
@@ -602,6 +636,7 @@ function resolveHostDefaultProvider(
         || ensureHostAgentModels().error
         || hostConfigState.error
         || "host OpenClaw config does not declare any providers",
+      discovery: discoveryInfo,
     };
   }
 
@@ -630,6 +665,7 @@ function resolveHostDefaultProvider(
             : null)
           || hostConfigState.error
           || "host OpenClaw config does not declare a single default provider",
+        discovery: discoveryInfo,
       };
     }
     providerId = providerEntries[0][0];
@@ -650,6 +686,7 @@ function resolveHostDefaultProvider(
         modelName: modelId,
         primary: `${providerId}/${modelId}`,
         builtInCatalog: true,
+        discovery: discoveryInfo,
       };
     }
 
@@ -659,6 +696,7 @@ function resolveHostDefaultProvider(
       detail:
         hostConfigState.error
         || `host OpenClaw config is missing provider '${providerId}'`,
+      discovery: discoveryInfo,
     };
   }
 
@@ -681,6 +719,7 @@ function resolveHostDefaultProvider(
             : null)
           || hostConfigState.error
           || `host OpenClaw config does not resolve a default model for provider '${providerId}'`,
+        discovery: discoveryInfo,
       };
     }
     [model] = models;
@@ -694,6 +733,7 @@ function resolveHostDefaultProvider(
       detail:
         hostConfigState.error
         || `host OpenClaw provider '${providerId}' is missing a usable API key`,
+      discovery: discoveryInfo,
     };
   }
 
@@ -705,6 +745,104 @@ function resolveHostDefaultProvider(
     modelId,
     modelName: model?.name || modelId,
     primary: `${providerId}/${modelId}`,
+    discovery: discoveryInfo,
+  };
+}
+
+function resolveHostDefaultProvider(
+  paths,
+  {
+    openclawBinary,
+    runCommand = runCommandSync,
+  } = {},
+) {
+  const explicitHostConfigPath = resolveExplicitHostOpenClawConfigPath(paths);
+  if (explicitHostConfigPath) {
+    return probeHostDefaultProvider(
+      paths,
+      {
+        source: "explicit-override",
+        configPath: explicitHostConfigPath,
+        stateDir: resolveHostOpenClawStateDir(paths, explicitHostConfigPath),
+        useConfigPathForCli: true,
+      },
+      {
+        openclawBinary,
+        runCommand,
+      },
+    );
+  }
+
+  const activeHostModelsStatusState = queryHostOpenClawModelsStatus(paths, {
+    openclawBinary,
+    runCommand,
+  });
+  if (activeHostModelsStatusState.status?.configPath) {
+    const activeHostResult = probeHostDefaultProvider(
+      paths,
+      {
+        source: "openclaw-cli",
+        configPath: activeHostModelsStatusState.status.configPath,
+        stateDir: resolveHostOpenClawStateDir(paths, activeHostModelsStatusState.status.configPath),
+        hostModelsStatusState: activeHostModelsStatusState,
+        useConfigPathForCli: false,
+      },
+      {
+        openclawBinary,
+        runCommand,
+      },
+    );
+    if (activeHostResult.source === "host-default") {
+      return activeHostResult;
+    }
+  }
+
+  let bestMissingResult = activeHostModelsStatusState.error
+    ? {
+        source: "none",
+        configPath: null,
+        detail: activeHostModelsStatusState.error,
+        discovery: {
+          source: "openclaw-cli",
+          configPath: null,
+          stateDir: process.env.OPENCLAW_STATE_DIR?.trim() || null,
+          agentDir: null,
+          resolvedDefault: null,
+        },
+      }
+    : null;
+
+  for (const candidate of resolveHostConfigCandidates(paths)) {
+    const candidateResult = probeHostDefaultProvider(
+      paths,
+      {
+        ...candidate,
+        useConfigPathForCli: true,
+      },
+      {
+        openclawBinary,
+        runCommand,
+      },
+    );
+    if (candidateResult.source === "host-default") {
+      return candidateResult;
+    }
+    if (!bestMissingResult && candidateResult.detail) {
+      bestMissingResult = candidateResult;
+    }
+  }
+
+  return bestMissingResult ?? {
+    source: "none",
+    configPath: null,
+    detail: "host OpenClaw config does not declare any providers",
+    discovery: {
+      source: "filesystem-scan",
+      configPath: null,
+      stateDir: process.env.OPENCLAW_STATE_DIR?.trim() || null,
+      agentDir: null,
+      resolvedDefault: null,
+    },
   };
 }
 
@@ -832,6 +970,7 @@ function resolveProviderSelection(
       ...repoProvider,
       hostConfigPath: hostProvider.configPath,
       hostDetail: hostProvider.detail || null,
+      discovery: hostProvider.discovery ?? null,
     };
   }
 
@@ -839,6 +978,7 @@ function resolveProviderSelection(
     source: "missing",
     hostConfigPath: hostProvider.configPath,
     hostDetail: hostProvider.detail || null,
+    discovery: hostProvider.discovery ?? null,
   };
 }
 
@@ -1150,6 +1290,7 @@ export function inspectMiraOpenClawRuntime({
       source: providerSelection.source,
       hostConfigPath: providerSelection.hostConfigPath ?? providerSelection.configPath ?? null,
       primaryModel: providerSelection.primary ?? null,
+      discovery: providerSelection.discovery ?? null,
     },
     resolvedStartCommand,
     missing,

@@ -115,13 +115,14 @@ export function toBoolean(value, fallback = false) {
 export function runCommandSync(
   command,
   args,
-  { cwd, env, stdio = "inherit" } = {},
+  { cwd, env, stdio = "inherit", timeoutMs } = {},
 ) {
   const result = spawnSync(command, args, {
     cwd,
     env,
     stdio,
     encoding: "utf8",
+    timeout: timeoutMs,
   });
 
   if (result.error) {

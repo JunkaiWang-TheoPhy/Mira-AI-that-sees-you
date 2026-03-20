@@ -86,10 +86,12 @@ The repo-level machine-readable deploy contract now lives at:
 
 For the integrated `mira-openclaw` profile, provider resolution is now host-first:
 
-- inherit the host OpenClaw default provider when one is already configured
-- auto-detect named host profiles such as `main` from OpenClaw workspace paths and look under paths like `~/.openclaw-main/openclaw.json`
+- explicit host config overrides such as `MIRA_OPENCLAW_HOST_CONFIG_PATH` or `OPENCLAW_CONFIG_PATH` win first
+- otherwise ask OpenClaw itself through `openclaw models status --json` and treat its `configPath`, `agentDir`, and `resolvedDefault` as the primary runtime truth
+- only if that CLI discovery is unusable does Mira scan filesystem candidates such as `~/.openclaw/openclaw.json` and named-profile paths like `~/.openclaw-main/openclaw.json`
 - accept host defaults resolved by OpenClaw itself, including built-in providers declared only by the default model ref and custom providers stored under `agents/<id>/agent/models.json`
 - fall back to repo `MIRA_OPENCLAW_PROVIDER_*` env values only when the host has no usable default provider
+- keep workspace profile inference as a last-resort filesystem hint rather than the primary source of truth
 - allow explicit overrides through `MIRA_OPENCLAW_HOST_PROFILE` or `MIRA_OPENCLAW_HOST_CONFIG_PATH`
 - fail fast with guidance when neither source is configured
 

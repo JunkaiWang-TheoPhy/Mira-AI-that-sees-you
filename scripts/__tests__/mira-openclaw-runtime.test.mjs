@@ -220,13 +220,14 @@ function writeHostOpenClawConfig(root, {
 
 function buildOpenClawModelsStatus({
   configPath,
+  agentDir = "/tmp/openclaw-agent",
   defaultModel = "host-provider/host-model",
   resolvedDefault = defaultModel,
   missingProvidersInUse = [],
 } = {}) {
   return JSON.stringify({
     configPath,
-    agentDir: "/tmp/openclaw-agent",
+    agentDir,
     defaultModel,
     resolvedDefault,
     fallbacks: [],
@@ -301,7 +302,8 @@ test("bootstrapMiraOpenClawRuntime generates a local runtime pack and config man
     existsSync(join(result.runtimeDir, "core", "plugins", "lingzhu-bridge", "src", "index.ts")),
     true,
   );
-  assert.equal(calls.length, 3);
+  assert.ok(calls.length >= 3);
+  assert.ok(calls.some((call) => call.args[0] === "plugins" && call.args[1] === "install"));
 
   const config = JSON.parse(readFileSync(result.configPath, "utf8"));
   assert.equal(config.agents.defaults.workspace, join(result.runtimeDir, "core", "workspace"));
@@ -370,8 +372,7 @@ test("bootstrapMiraOpenClawRuntime preserves installed plugin dependencies acros
     },
   });
 
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].args[0], "plugins");
+  assert.ok(calls.some((call) => call.args[0] === "plugins" && call.args[1] === "install"));
 });
 
 test("bootstrapMiraOpenClawRuntime provisions repo-local OpenClaw env and installs the plugin through the CLI", () => {
@@ -574,6 +575,308 @@ test("bootstrapMiraOpenClawRuntime inherits the host provider from the active Op
       delete process.env.MIRA_OPENCLAW_HOST_PROFILE;
     } else {
       process.env.MIRA_OPENCLAW_HOST_PROFILE = previousHostProfile;
+    }
+    if (previousRepoApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoApiKey;
+    }
+  }
+});
+
+test("bootstrapMiraOpenClawRuntime prefers the active host runtime reported by OpenClaw CLI over workspace profile inference", () => {
+  const fakeHome = mkdtempSync(join(tmpdir(), "mira-openclaw-cli-truth-home-"));
+  const root = join(
+    fakeHome,
+    ".openclaw",
+    "workspace-openclaw-agents",
+    "main",
+    "Mira-AI-that-sees-you",
+  );
+  mkdirSync(root, { recursive: true });
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const activeConfigPath = join(fakeHome, ".openclaw", "openclaw.json");
+  mkdirSync(join(activeConfigPath, ".."), { recursive: true });
+  writeFileSync(
+    activeConfigPath,
+    JSON.stringify({
+      agents: {
+        defaults: {
+          model: {
+            primary: "openai-codex/gpt-5.3-codex-spark",
+          },
+        },
+      },
+    }, null, 2),
+  );
+
+  const profileConfigPath = join(fakeHome, ".openclaw-main", "openclaw.json");
+  mkdirSync(join(profileConfigPath, ".."), { recursive: true });
+  writeFileSync(
+    profileConfigPath,
+    JSON.stringify({
+      agents: {
+        defaults: {
+          model: {
+            primary: "anthropic/claude-opus-4-6",
+          },
+        },
+      },
+    }, null, 2),
+  );
+
+  const activeAgentDir = join(fakeHome, ".openclaw", "agents", "main", "agent");
+  mkdirSync(activeAgentDir, { recursive: true });
+
+  const previousHome = process.env.HOME;
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousHostProfile = process.env.MIRA_OPENCLAW_HOST_PROFILE;
+  const previousRepoApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.HOME = fakeHome;
+    delete process.env.OPENCLAW_CONFIG_PATH;
+    delete process.env.MIRA_OPENCLAW_HOST_PROFILE;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+    const result = bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args, options) {
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "models"
+          && args[1] === "status"
+        ) {
+          if (options?.env?.OPENCLAW_CONFIG_PATH === profileConfigPath) {
+            return {
+              status: 0,
+              stdout: buildOpenClawModelsStatus({
+                configPath: profileConfigPath,
+                agentDir: join(fakeHome, ".openclaw-main", "agents", "main", "agent"),
+                defaultModel: "anthropic/claude-opus-4-6",
+                resolvedDefault: "anthropic/claude-opus-4-6",
+                missingProvidersInUse: ["anthropic"],
+              }),
+              stderr: "",
+            };
+          }
+
+          return {
+            status: 0,
+            stdout: buildOpenClawModelsStatus({
+              configPath: activeConfigPath,
+              agentDir: activeAgentDir,
+              defaultModel: "openai-codex/gpt-5.3-codex-spark",
+              resolvedDefault: "openai-codex/gpt-5.3-codex-spark",
+              missingProvidersInUse: [],
+            }),
+            stderr: "",
+          };
+        }
+
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const generatedConfig = JSON.parse(readFileSync(result.configPath, "utf8"));
+    assert.equal(
+      generatedConfig.agents.defaults.model.primary,
+      "openai-codex/gpt-5.3-codex-spark",
+    );
+    assert.deepEqual(generatedConfig.models.providers, {});
+
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args, options) {
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "models"
+          && args[1] === "status"
+        ) {
+          if (options?.env?.OPENCLAW_CONFIG_PATH === profileConfigPath) {
+            return {
+              status: 0,
+              stdout: buildOpenClawModelsStatus({
+                configPath: profileConfigPath,
+                agentDir: join(fakeHome, ".openclaw-main", "agents", "main", "agent"),
+                defaultModel: "anthropic/claude-opus-4-6",
+                resolvedDefault: "anthropic/claude-opus-4-6",
+                missingProvidersInUse: ["anthropic"],
+              }),
+              stderr: "",
+            };
+          }
+
+          return {
+            status: 0,
+            stdout: buildOpenClawModelsStatus({
+              configPath: activeConfigPath,
+              agentDir: activeAgentDir,
+              defaultModel: "openai-codex/gpt-5.3-codex-spark",
+              resolvedDefault: "openai-codex/gpt-5.3-codex-spark",
+              missingProvidersInUse: [],
+            }),
+            stderr: "",
+          };
+        }
+
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+    assert.equal(inspection.ok, true);
+    assert.equal(inspection.provider.hostConfigPath, activeConfigPath);
+    assert.equal(inspection.provider.source, "host-default");
+    assert.equal(inspection.provider.primaryModel, "openai-codex/gpt-5.3-codex-spark");
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousHostProfile === undefined) {
+      delete process.env.MIRA_OPENCLAW_HOST_PROFILE;
+    } else {
+      process.env.MIRA_OPENCLAW_HOST_PROFILE = previousHostProfile;
+    }
+    if (previousRepoApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoApiKey;
+    }
+  }
+});
+
+test("doctorMiraOpenClawRuntime reports OpenClaw CLI discovery details for the selected host runtime", () => {
+  const fakeHome = mkdtempSync(join(tmpdir(), "mira-openclaw-doctor-cli-home-"));
+  const root = join(
+    fakeHome,
+    ".openclaw",
+    "workspace-openclaw-agents",
+    "main",
+    "Mira-AI-that-sees-you",
+  );
+  mkdirSync(root, { recursive: true });
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const activeConfigPath = join(fakeHome, ".openclaw", "openclaw.json");
+  mkdirSync(join(activeConfigPath, ".."), { recursive: true });
+  writeFileSync(
+    activeConfigPath,
+    JSON.stringify({
+      agents: {
+        defaults: {
+          model: {
+            primary: "openai-codex/gpt-5.3-codex-spark",
+          },
+        },
+      },
+    }, null, 2),
+  );
+
+  const activeAgentDir = join(fakeHome, ".openclaw", "agents", "main", "agent");
+  mkdirSync(activeAgentDir, { recursive: true });
+
+  const previousHome = process.env.HOME;
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousRepoApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.HOME = fakeHome;
+    delete process.env.OPENCLAW_CONFIG_PATH;
+    delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args) {
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "models"
+          && args[1] === "status"
+        ) {
+          return {
+            status: 0,
+            stdout: buildOpenClawModelsStatus({
+              configPath: activeConfigPath,
+              agentDir: activeAgentDir,
+              defaultModel: "openai-codex/gpt-5.3-codex-spark",
+              resolvedDefault: "openai-codex/gpt-5.3-codex-spark",
+              missingProvidersInUse: [],
+            }),
+            stderr: "",
+          };
+        }
+
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const doctor = doctorMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(command, args) {
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "models"
+          && args[1] === "status"
+        ) {
+          return {
+            status: 0,
+            stdout: buildOpenClawModelsStatus({
+              configPath: activeConfigPath,
+              agentDir: activeAgentDir,
+              defaultModel: "openai-codex/gpt-5.3-codex-spark",
+              resolvedDefault: "openai-codex/gpt-5.3-codex-spark",
+              missingProvidersInUse: [],
+            }),
+            stderr: "",
+          };
+        }
+
+        if (
+          command === "/opt/homebrew/bin/openclaw"
+          && args[0] === "config"
+          && args[1] === "validate"
+        ) {
+          return {
+            status: 0,
+            stdout: JSON.stringify({ ok: true }),
+            stderr: "",
+          };
+        }
+
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    assert.equal(doctor.ok, true);
+    assert.deepEqual(doctor.provider.discovery, {
+      source: "openclaw-cli",
+      configPath: activeConfigPath,
+      stateDir: join(fakeHome, ".openclaw"),
+      agentDir: activeAgentDir,
+      resolvedDefault: "openai-codex/gpt-5.3-codex-spark",
+    });
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
     }
     if (previousRepoApiKey === undefined) {
       delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;

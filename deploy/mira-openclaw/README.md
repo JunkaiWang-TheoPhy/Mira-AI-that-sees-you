@@ -93,9 +93,11 @@ The bootstrap copies [env.example](./env.example) into:
 
 Provider resolution order is now:
 
-- inherit the host OpenClaw default provider first
-- if Mira is running inside a named OpenClaw workspace such as `workspace-openclaw-agents/main/...`, auto-detect that profile and check paths like `~/.openclaw-main/openclaw.json`
+- use `MIRA_OPENCLAW_HOST_CONFIG_PATH` or `OPENCLAW_CONFIG_PATH` first when you explicitly point Mira at a host config
+- otherwise run `openclaw models status --json` and treat its `configPath`, `agentDir`, and `resolvedDefault` as the active host runtime truth
+- only if that CLI result is unusable does Mira scan filesystem candidates such as `~/.openclaw/openclaw.json` and named-profile paths like `~/.openclaw-main/openclaw.json`
 - accept host defaults that OpenClaw resolves from built-in providers or `agents/<id>/agent/models.json`, even when `openclaw.json` itself does not spell out a custom `models.providers` block
+- keep workspace-driven profile inference as a last-resort candidate, not the primary discovery path
 - fall back to `OPENAI_API_KEY` or the repo `MIRA_OPENCLAW_PROVIDER_*` env values only if the host has no usable default provider
 - fail fast with next-step guidance if neither source is usable
 
