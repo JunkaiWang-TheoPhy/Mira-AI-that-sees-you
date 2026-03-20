@@ -10,12 +10,6 @@ This directory will hold the release-side Mira workspace skeleton.
 - memory-facing notes
 - task and tool boundary docs
 
-## Does Not Own
-
-- service runtime code
-- Home Assistant module implementation
-- private devbox state
-
 ## Planned Contents
 
 - workspace markdown skeleton

@@ -11,12 +11,6 @@ This directory will define who Mira is.
 - identity boundaries
 - high-level companion principles
 
-## Does Not Own
-
-- device integrations
-- hardware setup
-- service-specific runtime logic
-
 ## Planned Contents
 
 - `SOUL.md`

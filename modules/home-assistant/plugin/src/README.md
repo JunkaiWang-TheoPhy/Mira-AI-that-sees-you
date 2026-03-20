@@ -12,12 +12,6 @@ This directory contains the release-side source skeleton for Mira's Home Assista
 - device registry loading
 - risk, confirmation, and outbound policy hooks
 
-## Does Not Own
-
-- Home Assistant instance deployment
-- notification service ownership
-- Mira core persona files
-
 ## Current Files
 
 - `registry/loadDevicesRegistry.ts`

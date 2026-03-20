@@ -10,12 +10,6 @@ This directory will hold release-side companion applications that sit above core
 - app-level boundary docs
 - future companion app packaging surfaces
 
-## Does Not Own
-
-- Mira core identity
-- long-running service ownership
-- raw hardware-side bridge implementations
-
 ## Planned Contents
 
 - Rokid companion app shell

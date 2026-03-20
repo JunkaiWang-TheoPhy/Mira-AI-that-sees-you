@@ -11,12 +11,6 @@ This section explains the independently deployable Mira core.
 - OpenClaw config intent
 - core skill and plugin boundaries
 
-## Does Not Own
-
-- Home Assistant logic
-- hardware adapters
-- channel-specific runtime services
-
 ## Planned Contents
 
 - core architecture

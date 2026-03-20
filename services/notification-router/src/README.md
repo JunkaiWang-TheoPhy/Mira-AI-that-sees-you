@@ -12,13 +12,6 @@ This directory holds the first release-side source package for `notification-rou
 - local release-safe outbound contracts
 - release-side default outbound policy wiring
 
-## Does Not Own
-
-- outbound policy semantics themselves
-- upstream intent production
-- Mira persona or workspace rules
-- active runtime secrets or provider credentials
-
 ## Current Files
 
 - `server.ts`

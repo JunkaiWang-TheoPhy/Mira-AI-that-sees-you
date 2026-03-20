@@ -9,12 +9,6 @@ This directory will hold runtime plugins that belong to Mira core.
 - core runtime plugin contracts
 - release-safe plugin boundaries
 
-## Does Not Own
-
-- first-party module implementations
-- long-running backend services
-- hardware-side adapters
-
 ## Planned Contents
 
 - minimal core plugin scaffolds

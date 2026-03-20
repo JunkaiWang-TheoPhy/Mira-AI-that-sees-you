@@ -9,12 +9,6 @@ This directory reserves the simplest future deployment story for the release ver
 - minimum viable deployment path
 - smallest required service composition
 
-## Does Not Own
-
-- full production deployment docs
-- hardware-specific setup
-- private devbox reproduction
-
 ## Planned Contents
 
 - minimal runtime prerequisites

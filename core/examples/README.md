@@ -9,12 +9,6 @@ This directory will hold minimal examples that prove Mira core can stand on its 
 - minimal core demos
 - release-side example entrypoints
 
-## Does Not Own
-
-- full module demos
-- hardware walkthroughs
-- service deployment guides
-
 ## Planned Contents
 
 - minimal standalone Mira example

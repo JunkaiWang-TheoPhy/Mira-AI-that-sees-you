@@ -10,12 +10,6 @@ This directory will hold release-side OpenClaw configuration templates for Mira.
 - example runtime wiring
 - release-safe defaults
 
-## Does Not Own
-
-- persona wording
-- module-specific runtime logic
-- private live secrets
-
 ## Planned Contents
 
 - example config fragments

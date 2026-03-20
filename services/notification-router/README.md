@@ -11,12 +11,6 @@ This directory is the release-side home for Mira's outbound delivery service.
 - future channel integration notes
 - canonical outbound-policy ownership notes
 
-## Does Not Own
-
-- workspace persona rules
-- module-specific scene planning
-- gateway-side event production
-
 ## Planned Contents
 
 - service README

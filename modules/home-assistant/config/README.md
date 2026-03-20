@@ -11,12 +11,6 @@ This directory holds release-safe configuration examples for Mira's Home Assista
 - references to registry and scene-planning assets
 - Wave 2 ecosystem declaration slots
 
-## Does Not Own
-
-- live Home Assistant secrets
-- plugin implementation code
-- generic core runtime config
-
 ## Current Files
 
 - [home-assistant-module.example.json](./home-assistant-module.example.json)

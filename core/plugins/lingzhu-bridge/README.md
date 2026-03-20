@@ -10,12 +10,6 @@ This package preserves the release-safe, transport-neutral pieces of Mira's Ling
 - memory-context query and injection helpers
 - Lingzhu-facing request and config types used by the core bridge layer
 
-## Does Not Own
-
-- the live Lingzhu HTTP transport handler
-- image caching or other runtime side effects
-- active devbox extension wiring
-
 ## Current Release-Safe Contents
 
 - [`src/first-turn-opening.ts`](./src/first-turn-opening.ts)

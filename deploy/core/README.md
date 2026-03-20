@@ -10,12 +10,6 @@ This directory will hold deployment notes for the smallest Mira core runtime.
 - environment expectations for core
 - release-safe deploy entrypoints
 
-## Does Not Own
-
-- module-specific setup
-- service internals
-- private devbox procedures
-
 ## Planned Contents
 
 - local core setup
@@ -77,12 +71,3 @@ npm run doctor:mira-openclaw
 
 If the local machine already has `openclaw` installed, that generated-pack flow now installs the bundled `lingzhu` plugin shell into a repo-local OpenClaw state dir and validates the generated config through the real CLI.
 
-## Current Non-Goals
-
-This path still does not provide:
-
-- a bundled OpenClaw binary/runtime
-- a single mandated plugin installation method
-- provider credential automation
-- process supervisors or container packaging
-- module setup

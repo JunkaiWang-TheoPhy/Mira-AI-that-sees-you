@@ -11,12 +11,6 @@ This directory holds release-side registry examples for the Home Assistant modul
 - scene-binding examples
 - release-safe device metadata samples
 
-## Does Not Own
-
-- live household data
-- private runtime configuration
-- direct Home Assistant service code
-
 ## Planned Contents
 
 - named ecosystem support declarations

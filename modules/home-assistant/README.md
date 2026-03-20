@@ -13,12 +13,6 @@ This directory is Mira's first-party flagship module for household execution.
 - plugin skeletons
 - scene-planning documentation
 
-## Does Not Own
-
-- Mira core persona
-- generic outbound service ownership
-- device firmware or direct hardware driver stacks
-
 ## Planned Contents
 
 - module overview docs

@@ -10,12 +10,6 @@ This section explains Mira's first-party and future optional modules.
 - flagship module positioning
 - module integration rules
 
-## Does Not Own
-
-- core identity rules
-- device-side wiring details
-- generic release deployment instructions
-
 ## Planned Contents
 
 - module registry

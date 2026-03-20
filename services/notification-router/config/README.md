@@ -10,12 +10,6 @@ This directory will hold release-side machine-readable configuration examples fo
 - canonical runtime policy placement notes
 - service-level environment and channel config guidance
 
-## Does Not Own
-
-- Mira persona wording
-- gateway-side event production logic
-- module-specific scene planning
-
 ## Planned Contents
 
 - `outbound-policy.example.yaml`

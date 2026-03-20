@@ -10,12 +10,6 @@ This directory will hold the release-side plugin package for Mira's Home Assista
 - typed tool boundaries
 - scene resolver and executor implementation surfaces
 
-## Does Not Own
-
-- top-level module positioning
-- service-side outbound routing
-- Home Assistant instance deployment itself
-
 ## Planned Contents
 
 - plugin package metadata

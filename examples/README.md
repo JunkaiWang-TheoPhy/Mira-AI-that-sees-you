@@ -10,12 +10,6 @@ This directory will hold release-facing examples across core, modules, and servi
 - demonstration layouts
 - release-safe walkthrough examples
 
-## Does Not Own
-
-- production service code
-- private runtime snapshots
-- long-form architecture docs
-
 ## Planned Contents
 
 - minimal core example

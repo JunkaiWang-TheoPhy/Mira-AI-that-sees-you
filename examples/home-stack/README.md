@@ -10,12 +10,6 @@ This directory will hold a release-side example that composes Mira core with the
 - module stack walkthroughs
 - example-only release guidance
 
-## Does Not Own
-
-- production deploy recipes
-- module implementation itself
-- live household configuration
-
 ## Planned Contents
 
 - stack overview

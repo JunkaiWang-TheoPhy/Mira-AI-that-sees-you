@@ -10,12 +10,6 @@ This directory will hold release-side deployment material.
 - environment notes
 - minimal composition guides
 
-## Does Not Own
-
-- runtime implementation
-- core identity documents
-- service internals
-
 ## Planned Contents
 
 - minimal deploy recipe

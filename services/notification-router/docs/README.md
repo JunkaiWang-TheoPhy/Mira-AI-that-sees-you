@@ -10,12 +10,6 @@ This directory holds release-side architecture and runtime notes for `notificati
 - service-specific architecture summaries
 - release-safe channel and config documentation
 
-## Does Not Own
-
-- public root onboarding
-- provider credentials
-- active source code
-
 ## Planned Contents
 
 - runtime contract

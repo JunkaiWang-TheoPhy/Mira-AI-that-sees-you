@@ -10,12 +10,6 @@ This directory will hold the smallest release-side example that runs Mira core w
 - example composition boundaries
 - release-safe example expectations
 
-## Does Not Own
-
-- Home Assistant setup
-- service runtime implementation
-- private environment files
-
 ## Planned Contents
 
 - minimal core example README

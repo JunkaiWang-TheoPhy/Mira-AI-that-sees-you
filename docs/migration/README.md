@@ -10,12 +10,6 @@ This directory will hold migration notes from the prototype repository into the 
 - source-to-release mapping notes
 - staged migration rationale
 
-## Does Not Own
-
-- public onboarding
-- runtime code
-- provider-specific deploy instructions
-
 ## Planned Contents
 
 - migration maps

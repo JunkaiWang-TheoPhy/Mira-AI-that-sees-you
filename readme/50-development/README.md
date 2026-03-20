@@ -10,12 +10,6 @@ This section explains how the release tree should evolve.
 - migration rules
 - release-side documentation norms
 
-## Does Not Own
-
-- product positioning
-- runtime ownership decisions
-- deploy recipes
-
 ## Planned Contents
 
 - migration checklists

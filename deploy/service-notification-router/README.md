@@ -10,12 +10,6 @@ This directory will hold release-side deployment guidance for the outbound routi
 - channel environment expectations
 - release-safe service composition steps
 
-## Does Not Own
-
-- provider secrets
-- outbound policy semantics themselves
-- module planning logic
-
 ## Planned Contents
 
 - service startup notes

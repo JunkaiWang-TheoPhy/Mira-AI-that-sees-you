@@ -10,12 +10,6 @@ This directory will hold release-side architecture notes that are more internal 
 - cross-cutting release structure notes
 - internal release decomposition docs
 
-## Does Not Own
-
-- first-read public docs
-- deploy walkthroughs
-- runtime code
-
 ## Planned Contents
 
 - release architecture notes

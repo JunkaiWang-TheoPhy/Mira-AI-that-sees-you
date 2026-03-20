@@ -10,12 +10,6 @@ This section will explain device-side adapters, sidecars, setup constraints, and
 - physical device assumptions
 - sidecar and adapter boundaries
 
-## Does Not Own
-
-- Mira persona
-- core runtime identity
-- generic module policy logic
-
 ## Planned Contents
 
 - wearable setup notes

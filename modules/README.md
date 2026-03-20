@@ -10,12 +10,6 @@ This directory is the release-side home for Mira's first-party and optional capa
 - module boundary documentation
 - release-safe module packaging surfaces
 
-## Does Not Own
-
-- Mira core identity
-- long-running service ownership
-- raw hardware-side implementation details
-
 ## Planned Contents
 
 - flagship module entrypoints

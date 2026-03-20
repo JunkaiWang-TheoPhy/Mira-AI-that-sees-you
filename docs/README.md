@@ -10,12 +10,6 @@ This directory will hold release-facing architecture and maintenance docs that d
 - migration notes
 - future release-side specs
 
-## Does Not Own
-
-- root onboarding docs
-- end-user deployment instructions
-- code implementation
-
 ## Planned Contents
 
 - internal release specs

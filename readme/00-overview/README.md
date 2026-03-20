@@ -11,12 +11,6 @@ This section explains what Mira is, what this release includes, and what it inte
 - repo map
 - public scope and non-goals
 
-## Does Not Own
-
-- core implementation details
-- module-specific contracts
-- deploy instructions
-
 ## Planned Contents
 
 - release overview

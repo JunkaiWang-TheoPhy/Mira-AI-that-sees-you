@@ -10,12 +10,6 @@ This directory documents the advanced release-side composition path for Mira cor
 - release-safe sequencing for module-plus-service setup
 - example-only guidance for household actions plus outbound delivery
 
-## Does Not Own
-
-- Home Assistant administration
-- notification-router runtime source
-- production orchestration or secret management
-
 ## Current Status
 
 This is the first release-side example that combines:

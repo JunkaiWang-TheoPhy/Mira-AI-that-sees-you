@@ -10,12 +10,6 @@ This directory will hold release-side long-running backend services.
 - service-specific README entrypoints
 - release-safe service shells
 
-## Does Not Own
-
-- core persona rules
-- module-specific UI docs
-- deploy recipes themselves
-
 ## Planned Contents
 
 - `notification-router/`

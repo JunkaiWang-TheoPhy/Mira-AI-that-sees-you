@@ -11,12 +11,6 @@ This directory holds release-side architecture and behavior specs for the Home A
 - release-facing module design references
 - ecosystem support references
 
-## Does Not Own
-
-- public root onboarding
-- deploy recipes
-- runtime source code
-
 ## Planned Contents
 
 - scene planning specs

@@ -11,12 +11,6 @@ This section will hold deployment stories for the release version.
 - minimal setup paths
 - service composition notes
 
-## Does Not Own
-
-- low-level code contracts
-- device registry semantics
-- private runtime backup procedures
-
 ## Planned Contents
 
 - minimal local deployment

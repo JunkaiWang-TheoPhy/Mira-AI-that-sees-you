@@ -9,12 +9,6 @@ This directory holds optional brand-specific direct-adapter boundaries that rema
 - module-scoped direct-adapter package shells
 - release-safe boundary docs for optional vendor-direct paths
 
-## Does Not Own
-
-- Mira core plugins
-- Home Assistant-first default execution paths
-- live direct-adapter runtime code unless a later wave explicitly migrates it
-
 ## Current Status
 
 The first release-side direct-adapter boundary now exists here:

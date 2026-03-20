@@ -12,12 +12,6 @@
 - core skills and plugins
 - minimal examples
 
-## Does Not Own
-
-- Home Assistant module logic
-- hardware-specific adapters
-- long-running service ownership
-
 ## Planned Contents
 
 - `persona/`

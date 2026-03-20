@@ -11,12 +11,6 @@ This directory holds the release-side runtime package for an optional Philips Hu
 - the minimal bridge client and tool-registration runtime
 - package-local docs and tests for the Hue runtime surface
 
-## Does Not Own
-
-- the default Home Assistant execution path
-- deployment wiring outside the operator-facing deploy notes
-- automatic preference over the default Home Assistant Hue route
-
 ## Current Files
 
 - [package.json](./package.json)

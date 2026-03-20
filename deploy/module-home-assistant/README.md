@@ -10,12 +10,6 @@ This directory will hold deployment notes for Mira core plus the Home Assistant 
 - module dependency notes
 - release-safe setup expectations
 
-## Does Not Own
-
-- Home Assistant instance administration
-- service implementation code
-- generic core identity docs
-
 ## Planned Contents
 
 - core-plus-module setup notes
@@ -62,10 +56,3 @@ The advanced example that combines this module path with the outbound service li
 
 - [../../examples/home-stack-with-notification-router/README.md](../../examples/home-stack-with-notification-router/README.md)
 
-## Current Non-Goals
-
-This path still does not provide:
-
-- Home Assistant installation instructions
-- a live module runtime package
-- automatic config generation from a running household

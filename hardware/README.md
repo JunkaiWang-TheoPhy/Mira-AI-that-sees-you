@@ -10,12 +10,6 @@ This directory will hold release-side hardware integration material.
 - hardware setup boundaries
 - release-safe hardware documentation
 
-## Does Not Own
-
-- core persona
-- generic module planning logic
-- deploy-wide service ownership
-
 ## Planned Contents
 
 - wearable hardware notes
