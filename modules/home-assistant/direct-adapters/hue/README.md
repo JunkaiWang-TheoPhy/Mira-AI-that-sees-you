@@ -1,0 +1,39 @@
+# Philips Hue Direct Adapter
+
+## Purpose
+
+This directory holds the release-side runtime package for an optional Philips Hue direct adapter used by Mira's `Home Assistant` module.
+
+## Owns
+
+- Hue-specific package metadata
+- plugin metadata for the optional direct adapter
+- the minimal bridge client and tool-registration runtime
+- package-local docs and tests for the Hue runtime surface
+
+## Does Not Own
+
+- the default Home Assistant execution path
+- deployment wiring outside the operator-facing deploy notes
+- automatic preference over the default Home Assistant Hue route
+
+## Current Files
+
+- [package.json](./package.json)
+- [openclaw.plugin.json](./openclaw.plugin.json)
+- [src/README.md](./src/README.md)
+- [src/client.ts](./src/client.ts)
+- [src/index.ts](./src/index.ts)
+- [src/hue.test.ts](./src/hue.test.ts)
+
+## Current Status
+
+This package now ships a minimal release-side Hue runtime.
+
+It intentionally still does not ship:
+
+- install or bootstrap wiring
+- default-route overrides that bypass Home Assistant automatically
+- broader orchestration outside the Hue package boundary
+
+Home Assistant remains Mira's default Philips Hue path. This package is an optional direct-adapter runtime that operators can wire deliberately later.

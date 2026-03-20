@@ -1,0 +1,16 @@
+{
+  "name": "@mira-release/hue",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Release-side Philips Hue direct-adapter runtime package for Mira's Home Assistant module.",
+  "scripts": {
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+  },
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}

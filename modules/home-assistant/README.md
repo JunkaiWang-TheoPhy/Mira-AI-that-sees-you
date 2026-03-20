@@ -7,6 +7,8 @@ This directory is Mira's first-party flagship module for household execution.
 ## Owns
 
 - household control module boundaries
+- named home-ecosystem declarations
+- optional module-scoped direct-adapter boundaries
 - registry examples
 - plugin skeletons
 - scene-planning documentation
@@ -28,16 +30,23 @@ This directory is Mira's first-party flagship module for household execution.
 
 The first release-side module assets already present here are:
 
-- [docs/scene-resolver-policy-coordination-spec.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/scene-resolver-policy-coordination-spec.md)
-- [docs/module-runtime-contract.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/module-runtime-contract.md)
-- [docs/package-assembly-checklist.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/package-assembly-checklist.md)
-- [registry/devices.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/registry/devices.example.json)
-- [config/home-assistant-module.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/config/home-assistant-module.example.json)
-- [plugin/package.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/package.json)
-- [plugin/tsconfig.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/tsconfig.json)
-- [plugin/src/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/src/README.md)
+- [docs/scene-resolver-policy-coordination-spec.md](./docs/scene-resolver-policy-coordination-spec.md)
+- [docs/module-runtime-contract.md](./docs/module-runtime-contract.md)
+- [docs/package-assembly-checklist.md](./docs/package-assembly-checklist.md)
+- [docs/home-ecosystem-support-matrix.md](./docs/home-ecosystem-support-matrix.md)
+- [registry/devices.example.json](./registry/devices.example.json)
+- [config/home-assistant-module.example.json](./config/home-assistant-module.example.json)
+- [plugin/package.json](./plugin/package.json)
+- [plugin/tsconfig.json](./plugin/tsconfig.json)
+- [plugin/src/README.md](./plugin/src/README.md)
 
 This README turns those files into a public module entrypoint rather than a loose implementation subtree.
+
+Wave 2 now formally covers 12 named smart-home entries inside this single module. That declaration layer does not imply 12 live direct-runtime implementations.
+
+The first optional direct-adapter boundary now also exists under:
+
+- [direct-adapters/hue/README.md](./direct-adapters/hue/README.md)
 
 The first module onboarding path now exists through:
 

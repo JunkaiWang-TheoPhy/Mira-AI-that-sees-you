@@ -9,6 +9,7 @@ This directory holds release-side architecture and behavior specs for the Home A
 - module architecture notes
 - planning and policy coordination specs
 - release-facing module design references
+- ecosystem support references
 
 ## Does Not Own
 
@@ -21,11 +22,32 @@ This directory holds release-side architecture and behavior specs for the Home A
 - scene planning specs
 - policy coordination notes
 - module architecture docs
+- named ecosystem support docs
 
 ## Current Status
 
-The first spec already present here is:
+The current release-side docs now include:
 
-- [scene-resolver-policy-coordination-spec.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/scene-resolver-policy-coordination-spec.md)
-- [module-runtime-contract.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/module-runtime-contract.md)
-- [package-assembly-checklist.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/package-assembly-checklist.md)
+- [scene-resolver-policy-coordination-spec.md](./scene-resolver-policy-coordination-spec.md)
+- [module-runtime-contract.md](./module-runtime-contract.md)
+- [package-assembly-checklist.md](./package-assembly-checklist.md)
+- [home-ecosystem-support-matrix.md](./home-ecosystem-support-matrix.md)
+
+The Wave 2 ecosystem entry docs now live under:
+
+- [ecosystems/amazon-alexa.md](./ecosystems/amazon-alexa.md)
+- [ecosystems/apple-home.md](./ecosystems/apple-home.md)
+- [ecosystems/homekit.md](./ecosystems/homekit.md)
+- [ecosystems/xiaomi-mi-home.md](./ecosystems/xiaomi-mi-home.md)
+- [ecosystems/matter.md](./ecosystems/matter.md)
+- [ecosystems/aqara.md](./ecosystems/aqara.md)
+- [ecosystems/tuya-smart-life.md](./ecosystems/tuya-smart-life.md)
+- [ecosystems/switchbot.md](./ecosystems/switchbot.md)
+- [ecosystems/philips-hue.md](./ecosystems/philips-hue.md)
+- [ecosystems/google-home-nest.md](./ecosystems/google-home-nest.md)
+- [ecosystems/lutron.md](./ecosystems/lutron.md)
+- [ecosystems/smartthings.md](./ecosystems/smartthings.md)
+
+The first optional direct-adapter boundary referenced by these docs now lives at:
+
+- [../direct-adapters/hue/README.md](../direct-adapters/hue/README.md)

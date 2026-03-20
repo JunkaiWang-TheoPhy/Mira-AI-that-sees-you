@@ -10,6 +10,182 @@
       "channel": "openclaw_channel_dm",
       "notificationRouterBaseUrl": "http://127.0.0.1:3302"
     },
+    "ecosystems": {
+      "amazon-alexa": {
+        "displayName": "Amazon Alexa",
+        "supportLevel": "readiness_onboarding_only",
+        "runtimePath": "readiness_only",
+        "directAdapter": {
+          "availability": "readiness_only",
+          "pluginId": "alexa"
+        },
+        "operatorPrerequisites": [
+          "Review account-linking readiness before enabling future Alexa-facing flows."
+        ],
+        "notes": [
+          "Wave 2 only declares onboarding and readiness for Alexa."
+        ]
+      },
+      "apple-home": {
+        "displayName": "Apple Home",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Map Apple-facing entities into Home Assistant before depending on Apple Home naming."
+        ],
+        "notes": [
+          "Wave 2 keeps Apple Home on the Home Assistant-first path."
+        ]
+      },
+      "homekit": {
+        "displayName": "HomeKit",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Configure HomeKit bridge or controller support in Home Assistant before using HomeKit-backed entities."
+        ],
+        "notes": [
+          "Wave 2 keeps HomeKit on the Home Assistant-first path."
+        ]
+      },
+      "xiaomi-mi-home": {
+        "displayName": "Xiaomi / Mi Home",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Expose Xiaomi or Mi Home devices in Home Assistant before scene routing depends on them."
+        ],
+        "notes": [
+          "Wave 2 declares Xiaomi and Mi Home support through Home Assistant-first routing."
+        ]
+      },
+      "matter": {
+        "displayName": "Matter",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Ensure Matter devices are already visible in Home Assistant before using Mira scene bindings."
+        ],
+        "notes": [
+          "Wave 2 keeps Matter on the Home Assistant-first path."
+        ]
+      },
+      "aqara": {
+        "displayName": "Aqara",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Expose Aqara devices through Home Assistant before depending on Aqara household roles."
+        ],
+        "notes": [
+          "Wave 2 keeps Aqara on the Home Assistant-first path."
+        ]
+      },
+      "tuya-smart-life": {
+        "displayName": "Tuya / Smart Life",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Expose Tuya or Smart Life devices through Home Assistant before Mira scene routing depends on them."
+        ],
+        "notes": [
+          "Wave 2 keeps Tuya and Smart Life on the Home Assistant-first path."
+        ]
+      },
+      "switchbot": {
+        "displayName": "SwitchBot",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Expose SwitchBot devices through Home Assistant before using SwitchBot roles in scenes."
+        ],
+        "notes": [
+          "Wave 2 keeps SwitchBot on the Home Assistant-first path."
+        ]
+      },
+      "philips-hue": {
+        "displayName": "Philips Hue",
+        "supportLevel": "ha_first_optional_direct_adapter",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "optional",
+          "adapterId": "hue-local",
+          "pluginId": "hue"
+        },
+        "operatorPrerequisites": [
+          "Keep Home Assistant as the default path for Hue in the current release.",
+          "Only enable direct Hue bridge access deliberately with a bridge URL and application key.",
+          "Review modules/home-assistant/direct-adapters/hue/README.md before widening direct-bridge scope."
+        ],
+        "notes": [
+          "A release-side Hue direct-adapter runtime package now exists under modules/home-assistant/direct-adapters/hue/.",
+          "That package remains optional and does not replace the default Home Assistant route."
+        ]
+      },
+      "google-home-nest": {
+        "displayName": "Google Home / Nest",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Expose Google Home or Nest devices through Home Assistant-backed entities before Mira depends on them."
+        ],
+        "notes": [
+          "Wave 2 keeps Google Home and Nest on the Home Assistant-first path."
+        ]
+      },
+      "lutron": {
+        "displayName": "Lutron",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Expose Lutron devices through Home Assistant before Mira scene routing depends on them."
+        ],
+        "notes": [
+          "Wave 2 keeps Lutron on the Home Assistant-first path."
+        ]
+      },
+      "smartthings": {
+        "displayName": "SmartThings",
+        "supportLevel": "ha_first",
+        "runtimePath": "home_assistant",
+        "directAdapter": {
+          "availability": "none"
+        },
+        "operatorPrerequisites": [
+          "Expose SmartThings devices through Home Assistant before using SmartThings household roles in Mira."
+        ],
+        "notes": [
+          "Wave 2 keeps SmartThings on the Home Assistant-first path."
+        ]
+      }
+    },
     "registry": {
       "devicesPath": "../registry/devices.example.json"
     },

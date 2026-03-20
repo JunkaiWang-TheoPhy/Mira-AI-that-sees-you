@@ -9,6 +9,7 @@ This directory holds release-safe configuration examples for Mira's Home Assista
 - module config examples
 - release-safe placeholder values
 - references to registry and scene-planning assets
+- Wave 2 ecosystem declaration slots
 
 ## Does Not Own
 
@@ -18,14 +19,17 @@ This directory holds release-safe configuration examples for Mira's Home Assista
 
 ## Current Files
 
-- [home-assistant-module.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/config/home-assistant-module.example.json)
+- [home-assistant-module.example.json](./home-assistant-module.example.json)
 
 ## Relationship
 
 This config example is intended to be read together with:
 
-- [registry/devices.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/registry/devices.example.json)
-- [docs/scene-resolver-policy-coordination-spec.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/scene-resolver-policy-coordination-spec.md)
-- [plugin/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/README.md)
+- [../registry/devices.example.json](../registry/devices.example.json)
+- [../docs/scene-resolver-policy-coordination-spec.md](../docs/scene-resolver-policy-coordination-spec.md)
+- [../docs/home-ecosystem-support-matrix.md](../docs/home-ecosystem-support-matrix.md)
+- [../plugin/README.md](../plugin/README.md)
 
 It is a release-side illustrative example, not a claim that the current runtime has already consumed this exact JSON shape.
+
+The `homeAssistant.ecosystems` section now mirrors the 12 named Wave 2 support entries without claiming that all of them already have live direct-runtime support.

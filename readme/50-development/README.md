@@ -30,10 +30,14 @@ This section is no longer only a placeholder.
 
 The first concrete development-side guide now exists at:
 
-- [contributing-and-migration.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/readme/50-development/contributing-and-migration.md)
+- [contributing-and-migration.md](./contributing-and-migration.md)
 
 The release tree now also contains supporting internal shells under:
 
-- [docs/architecture/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/architecture/README.md)
-- [docs/migration/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/README.md)
-- [apps/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/apps/README.md)
+- [../../docs/architecture/README.md](../../docs/architecture/README.md)
+- [../../docs/migration/README.md](../../docs/migration/README.md)
+- [../../apps/README.md](../../apps/README.md)
+
+Recent deploy/runtime compatibility decisions now also live under:
+
+- [../../docs/plans/2026-03-20-openclaw-compat-adapter-design.md](../../docs/plans/2026-03-20-openclaw-compat-adapter-design.md)

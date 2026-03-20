@@ -6,6 +6,7 @@ This directory holds release-side registry examples for the Home Assistant modul
 
 ## Owns
 
+- ecosystem declaration metadata
 - device registry examples
 - scene-binding examples
 - release-safe device metadata samples
@@ -18,6 +19,7 @@ This directory holds release-side registry examples for the Home Assistant modul
 
 ## Planned Contents
 
+- named ecosystem support declarations
 - example device registries
 - capability-model references
 - future registry schema notes
@@ -26,4 +28,9 @@ This directory holds release-side registry examples for the Home Assistant modul
 
 The current release-side sample is:
 
-- [devices.example.json](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/registry/devices.example.json)
+- [devices.example.json](./devices.example.json)
+
+The registry now carries two layers:
+
+- top-level `ecosystems` declarations for the 12 named Wave 2 entries
+- example `devices` used by current scene and policy skeletons

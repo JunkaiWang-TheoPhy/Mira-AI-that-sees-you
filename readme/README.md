@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This folder is the public documentation portal for `Mira_Released_Version`.
+This folder is the public documentation portal for the current Mira release tree.
 
 It is meant to help future readers understand the release structure before they read implementation files.
 
@@ -38,9 +38,16 @@ It currently focuses on:
 
 The first concrete release-side reading paths now already exist for:
 
+- the default repo-level deploy path
 - `minimal-core`
 - `home-stack`
 - `service-notification-router`
+
+The current operator-facing deploy companions now also exist at:
+
+- [../README.md](../README.md)
+- [../deploy/deploy-paths-overview.md](../deploy/deploy-paths-overview.md)
+- [../deploy/mira-openclaw/README.md](../deploy/mira-openclaw/README.md)
 
 The first concrete development-side entrypoint now also exists for contributors:
 

@@ -2,7 +2,6 @@
 
 > 有些关心 不需要开口
 
-
 Mira is a companion-style agent release built on OpenClaw.
 
 This directory is the staging root for a standalone public repository that will package Mira as:

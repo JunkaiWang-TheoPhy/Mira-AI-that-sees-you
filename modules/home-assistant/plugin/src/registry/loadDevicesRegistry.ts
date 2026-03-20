@@ -2,6 +2,23 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 export type DeviceRiskTier = "inform" | "confirm" | "side_effect";
+export type EcosystemSupportLevel =
+  | "ha_first"
+  | "ha_first_optional_direct_adapter"
+  | "readiness_onboarding_only";
+export type EcosystemRuntimePath =
+  | "home_assistant"
+  | "readiness_only";
+export type EcosystemDirectAdapterAvailability =
+  | "none"
+  | "optional"
+  | "readiness_only";
+
+export type EcosystemDirectAdapter = {
+  availability: EcosystemDirectAdapterAvailability;
+  adapterId?: string;
+  pluginId?: string;
+};
 
 export type DeviceCapability = {
   intent: string;
@@ -44,15 +61,37 @@ export type LoadedDevice = {
   };
 };
 
+export type LoadedEcosystem = {
+  id: string;
+  displayName: string;
+  supportLevel: EcosystemSupportLevel;
+  runtimePath: EcosystemRuntimePath;
+  directAdapter: EcosystemDirectAdapter;
+  operatorPrerequisites: string[];
+  currentStatus: string;
+  notes: string[];
+};
+
 export type DevicesRegistry = {
   schemaVersion: string;
   registryName?: string;
+  ecosystems: LoadedEcosystem[];
   devices: LoadedDevice[];
 };
 
 type RawDevicesRegistry = {
   schemaVersion: string;
   registryName?: string;
+  ecosystems?: Array<{
+    id: string;
+    displayName?: string;
+    supportLevel?: EcosystemSupportLevel;
+    runtimePath?: EcosystemRuntimePath;
+    directAdapter?: EcosystemDirectAdapter;
+    operatorPrerequisites?: string[];
+    currentStatus?: string;
+    notes?: string[];
+  }>;
   devices?: Array<{
     id: string;
     displayName?: string;
@@ -103,6 +142,16 @@ export async function loadDevicesRegistry(pathOrUrl?: string | URL): Promise<Dev
   return {
     schemaVersion: raw.schemaVersion,
     registryName: raw.registryName,
+    ecosystems: (raw.ecosystems ?? []).map((ecosystem) => ({
+      id: ecosystem.id,
+      displayName: ecosystem.displayName ?? ecosystem.id,
+      supportLevel: ecosystem.supportLevel ?? "ha_first",
+      runtimePath: ecosystem.runtimePath ?? "home_assistant",
+      directAdapter: ecosystem.directAdapter ?? { availability: "none" },
+      operatorPrerequisites: ecosystem.operatorPrerequisites ?? [],
+      currentStatus: ecosystem.currentStatus ?? "declared",
+      notes: ecosystem.notes ?? [],
+    })),
     devices: (raw.devices ?? []).map((device) => ({
       deviceId: device.id,
       displayName: device.displayName ?? device.id,

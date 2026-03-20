@@ -1,0 +1,48 @@
+{
+  "id": "hue",
+  "name": "Philips Hue Direct Adapter",
+  "description": "Release-side optional Philips Hue bridge runtime package used by Mira's Home Assistant module.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "baseUrl",
+      "applicationKey"
+    ],
+    "properties": {
+      "baseUrl": {
+        "type": "string",
+        "description": "Hue bridge URL or API root, for example http://bridge.local"
+      },
+      "applicationKey": {
+        "type": "string",
+        "description": "Hue application key"
+      },
+      "bridgeId": {
+        "type": "string",
+        "description": "Optional expected bridge identifier"
+      },
+      "defaultTransitionMs": {
+        "type": "number",
+        "description": "Optional default transition duration in milliseconds"
+      }
+    }
+  },
+  "uiHints": {
+    "baseUrl": {
+      "label": "Hue Bridge URL",
+      "placeholder": "http://bridge.local"
+    },
+    "applicationKey": {
+      "label": "Hue Application Key",
+      "sensitive": true
+    },
+    "bridgeId": {
+      "label": "Hue Bridge ID"
+    },
+    "defaultTransitionMs": {
+      "label": "Default Transition (ms)"
+    }
+  }
+}

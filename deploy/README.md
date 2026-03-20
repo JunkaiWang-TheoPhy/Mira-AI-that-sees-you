@@ -24,8 +24,20 @@ This directory will hold release-side deployment material.
 
 ## Current Status
 
-The first reserved recipe location is [deploy/minimal](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/minimal).
+This directory now contains the current repo-level deploy contract, focused profile deploy docs, and machine-readable deploy metadata.
 
 The current unified operator-facing comparison page now lives at:
 
-- [deploy-paths-overview.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/deploy-paths-overview.md)
+- [deploy-paths-overview.md](./deploy-paths-overview.md)
+
+The current default integrated stack docs now live at:
+
+- [mira-openclaw/README.md](./mira-openclaw/README.md)
+- [repo.env.example](./repo.env.example)
+- [repo-manifest.json](./repo-manifest.json)
+
+The current focused service and module docs also live at:
+
+- [core/README.md](./core/README.md)
+- [service-notification-router/README.md](./service-notification-router/README.md)
+- [module-home-assistant/README.md](./module-home-assistant/README.md)

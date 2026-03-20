@@ -4,6 +4,6 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
-    "test": "echo 'Release-side Home Assistant plugin tests are tracked in the active repo and will be migrated later.'"
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
   }
 }

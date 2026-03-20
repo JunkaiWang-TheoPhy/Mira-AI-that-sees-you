@@ -24,24 +24,24 @@ This section explains Mira's first-party and future optional modules.
 
 ## Current Status
 
-The first meaningful module already exists under [modules/home-assistant](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant).
+The first meaningful module already exists under [../../modules/home-assistant](../../modules/home-assistant).
 
 The release-side module shell now also includes:
 
-- [modules/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/README.md)
-- [modules/home-assistant/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/README.md)
-- [modules/home-assistant/config/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/config/README.md)
-- [modules/home-assistant/plugin/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/plugin/README.md)
-- [modules/home-assistant/docs/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/README.md)
-- [modules/home-assistant/registry/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/registry/README.md)
-- [modules/home-assistant/docs/module-runtime-contract.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/module-runtime-contract.md)
-- [modules/home-assistant/docs/package-assembly-checklist.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/modules/home-assistant/docs/package-assembly-checklist.md)
+- [../../modules/README.md](../../modules/README.md)
+- [../../modules/home-assistant/README.md](../../modules/home-assistant/README.md)
+- [../../modules/home-assistant/config/README.md](../../modules/home-assistant/config/README.md)
+- [../../modules/home-assistant/plugin/README.md](../../modules/home-assistant/plugin/README.md)
+- [../../modules/home-assistant/docs/README.md](../../modules/home-assistant/docs/README.md)
+- [../../modules/home-assistant/registry/README.md](../../modules/home-assistant/registry/README.md)
+- [../../modules/home-assistant/docs/module-runtime-contract.md](../../modules/home-assistant/docs/module-runtime-contract.md)
+- [../../modules/home-assistant/docs/package-assembly-checklist.md](../../modules/home-assistant/docs/package-assembly-checklist.md)
 
 The first module onboarding path now exists through:
 
-- [examples/home-stack/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/home-stack/README.md)
-- [deploy/module-home-assistant/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/module-home-assistant/README.md)
+- [../../examples/home-stack/README.md](../../examples/home-stack/README.md)
+- [../../deploy/module-home-assistant/README.md](../../deploy/module-home-assistant/README.md)
 
 The ordered onboarding path that reaches modules after core now lives at:
 
-- [readme/00-overview/getting-started.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/readme/00-overview/getting-started.md)
+- [../00-overview/getting-started.md](../00-overview/getting-started.md)

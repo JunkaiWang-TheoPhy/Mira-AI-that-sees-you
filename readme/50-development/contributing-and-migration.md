@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This page explains how to continue building `Mira_Released_Version` without collapsing it back into a raw prototype dump.
+This page explains how to continue building the Mira release tree without collapsing it back into a raw prototype dump.
 
 ## Choose The Right Area First
 
@@ -86,31 +86,34 @@ Do not directly mirror:
 
 Use these internal release docs together:
 
-- [docs/architecture/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/architecture/README.md)
-- [docs/migration/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/README.md)
-- [docs/migration/source-to-release-mapping.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/source-to-release-mapping.md)
-- [docs/migration/release-baseline.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/release-baseline.md)
-- [docs/migration/open-source-readiness-checklist.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/open-source-readiness-checklist.md)
-- [docs/migration/repository-split-readiness.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/repository-split-readiness.md)
-- [docs/migration/package-and-license-decisions.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/docs/migration/package-and-license-decisions.md)
+- [../../docs/architecture/README.md](../../docs/architecture/README.md)
+- [../../docs/migration/README.md](../../docs/migration/README.md)
+- [../../docs/migration/source-to-release-mapping.md](../../docs/migration/source-to-release-mapping.md)
+- [../../docs/migration/release-baseline.md](../../docs/migration/release-baseline.md)
+- [../../docs/migration/open-source-readiness-checklist.md](../../docs/migration/open-source-readiness-checklist.md)
+- [../../docs/migration/repository-split-readiness.md](../../docs/migration/repository-split-readiness.md)
+- [../../docs/migration/package-and-license-decisions.md](../../docs/migration/package-and-license-decisions.md)
+- [../../docs/plans/2026-03-20-openclaw-compat-adapter-design.md](../../docs/plans/2026-03-20-openclaw-compat-adapter-design.md)
 
 ## Current Public Entry Companions
 
 Use these public release docs together:
 
-- [readme/00-overview/quick-start.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/readme/00-overview/quick-start.md)
-- [readme/00-overview/getting-started.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/readme/00-overview/getting-started.md)
+- [../00-overview/quick-start.md](../00-overview/quick-start.md)
+- [../00-overview/getting-started.md](../00-overview/getting-started.md)
+- [../../deploy/deploy-paths-overview.md](../../deploy/deploy-paths-overview.md)
 
 ## Practical Rule
 
-If a proposed addition makes `Mira_Released_Version` look more like a private backup than a public package, it probably belongs in the main prototype repo or in internal docs, not in the release tree itself.
+If a proposed addition makes the Mira release tree look more like a private backup than a public package, it probably belongs in the main prototype repo or in internal docs, not in the release tree itself.
 
 ## Shared Verification Entry
 
 The release tree now exposes a shared root-level verification entry:
 
 ```bash
-cd Mira_Released_Version
+cd Mira
 npm run verify:release
+npm run test:release
 npm run export:repo
 ```

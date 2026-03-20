@@ -18,6 +18,8 @@ Choose this when you want:
 - the release-safe Mira core plus bundled OpenClaw integration
 - automatic `notification-router` sidecar startup through the default root commands
 - a standard foreground entrypoint for platforms that assume `npm start`
+- host-first provider discovery with repo env fallback only when needed
+- compatibility-safe startup on older OpenClaw CLIs
 
 Platform manifests now committed at the repo root:
 
@@ -37,6 +39,7 @@ cp deploy/repo.env.example .env.local
 # edit .env.local
 # set MIRA_DEPLOY_PROFILE=notification-router for router-only
 # or keep mira-openclaw for the default integrated stack
+# optional: tune MIRA_OPENCLAW_HEALTH_TIMEOUT_MS for slower or faster hosts
 
 npm run deploy
 npm start
@@ -59,6 +62,8 @@ Choose this when you want:
 - the current full release-safe integrated stack
 - a repo-local OpenClaw config and plugin install path
 - sidecar-managed outbound routing
+- generated config normalization including `gateway.mode=local`
+- best-effort validation when the host OpenClaw CLI lacks `config validate`
 
 ### 2. Notification Router Only
 

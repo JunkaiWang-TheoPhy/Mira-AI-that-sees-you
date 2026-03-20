@@ -27,24 +27,30 @@ This section explains what Mira is, what this release includes, and what it inte
 
 This section is no longer just a placeholder boundary page.
 
-The current root overview still lives in [README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/README.md).
+The current root overview still lives in [../../README.md](../../README.md).
 
-At the moment, the release tree already has three concrete public paths:
+At the moment, the release tree already has four concrete public entry paths:
 
-- [examples/minimal-core/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/minimal-core/README.md)
-- [examples/home-stack/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/home-stack/README.md)
-- [examples/service-notification-router/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/service-notification-router/README.md)
+- [../../README.md](../../README.md)
+- [../../examples/minimal-core/README.md](../../examples/minimal-core/README.md)
+- [../../examples/home-stack/README.md](../../examples/home-stack/README.md)
+- [../../examples/service-notification-router/README.md](../../examples/service-notification-router/README.md)
 
 The quickest way to compare them is:
 
-- [quick-start.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/readme/00-overview/quick-start.md)
+- [quick-start.md](./quick-start.md)
 
 The recommended ordered setup path is:
 
-- [getting-started.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/readme/00-overview/getting-started.md)
+- [getting-started.md](./getting-started.md)
 
-Those three paths now represent the clearest release-side proof points for:
+The operator-facing deploy comparison page now also lives at:
 
+- [../../deploy/deploy-paths-overview.md](../../deploy/deploy-paths-overview.md)
+
+Those paths now represent the clearest release-side proof points for:
+
+- root-level one-command deploy
 - core only
 - core plus first-party module
 - core plus outbound service

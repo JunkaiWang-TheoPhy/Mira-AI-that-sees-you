@@ -1,6 +1,179 @@
 {
   "schemaVersion": "1.0.0",
   "registryName": "mira_home_devices_example",
+  "ecosystems": [
+    {
+      "id": "amazon-alexa",
+      "displayName": "Amazon Alexa",
+      "supportLevel": "readiness_onboarding_only",
+      "runtimePath": "readiness_only",
+      "directAdapter": {
+        "availability": "readiness_only",
+        "pluginId": "alexa"
+      },
+      "operatorPrerequisites": [
+        "Review future Alexa account-linking requirements before enabling any Alexa-facing operator flow.",
+        "Treat Alexa as onboarding-only in Wave 2."
+      ],
+      "currentStatus": "Readiness and onboarding only in this release repo.",
+      "notes": [
+        "No live Alexa device-control runtime ships in Wave 2."
+      ]
+    },
+    {
+      "id": "apple-home",
+      "displayName": "Apple Home",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Expose Apple-facing household entities through Home Assistant before relying on Apple Home naming."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    },
+    {
+      "id": "homekit",
+      "displayName": "HomeKit",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Configure the Home Assistant HomeKit bridge or controller path before expecting HomeKit-backed entities."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    },
+    {
+      "id": "xiaomi-mi-home",
+      "displayName": "Xiaomi / Mi Home",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Map Xiaomi and Mi Home devices into Home Assistant before scene routing depends on them."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2.",
+      "notes": [
+        "Some example devices may still carry prototype-inspired route hints such as miot identifiers."
+      ]
+    },
+    {
+      "id": "matter",
+      "displayName": "Matter",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Ensure Matter devices are already exposed as Home Assistant entities before using Mira scene bindings."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    },
+    {
+      "id": "aqara",
+      "displayName": "Aqara",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Expose Aqara devices through Home Assistant or an equivalent bridge before relying on Aqara-specific roles."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    },
+    {
+      "id": "tuya-smart-life",
+      "displayName": "Tuya / Smart Life",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Confirm Tuya or Smart Life devices are visible in Home Assistant before routing household intents."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    },
+    {
+      "id": "switchbot",
+      "displayName": "SwitchBot",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Expose SwitchBot devices through Home Assistant before scene roles depend on them."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    },
+    {
+      "id": "philips-hue",
+      "displayName": "Philips Hue",
+      "supportLevel": "ha_first_optional_direct_adapter",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "optional",
+        "adapterId": "hue-local",
+        "pluginId": "hue"
+      },
+      "operatorPrerequisites": [
+        "Keep Home Assistant as the default route for Hue in the current release.",
+        "Only treat direct Hue bridge access as an optional operator-enabled runtime path.",
+        "Review modules/home-assistant/direct-adapters/hue/README.md before widening direct-bridge scope."
+      ],
+      "currentStatus": "Declared as Home Assistant-first with an optional release-side direct-adapter runtime under modules/home-assistant/direct-adapters/hue/.",
+      "notes": [
+        "The optional Hue runtime now lives in the module-local direct-adapter package, but it does not replace the default Home Assistant route."
+      ]
+    },
+    {
+      "id": "google-home-nest",
+      "displayName": "Google Home / Nest",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Expose Google Home and Nest devices through Home Assistant-backed entities before expecting Mira control."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    },
+    {
+      "id": "lutron",
+      "displayName": "Lutron",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Expose Lutron bridge-backed devices through Home Assistant before Mira scene routing depends on them."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    },
+    {
+      "id": "smartthings",
+      "displayName": "SmartThings",
+      "supportLevel": "ha_first",
+      "runtimePath": "home_assistant",
+      "directAdapter": {
+        "availability": "none"
+      },
+      "operatorPrerequisites": [
+        "Expose SmartThings devices through Home Assistant before using SmartThings household roles in Mira."
+      ],
+      "currentStatus": "Declared as a Home Assistant-first ecosystem entry in Wave 2."
+    }
+  ],
   "devices": [
     {
       "id": "mi-bedroom-fan",

@@ -25,28 +25,44 @@ This section will hold deployment stories for the release version.
 
 ## Current Status
 
-The first placeholder deploy path exists under [deploy/minimal](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/minimal).
+The release-side deploy shell is no longer just a placeholder.
+
+The current root-level deploy story now starts with:
+
+- [../../README.md](../../README.md)
+- [../../deploy/deploy-paths-overview.md](../../deploy/deploy-paths-overview.md)
+- [../../deploy/mira-openclaw/README.md](../../deploy/mira-openclaw/README.md)
 
 The release-side deploy shell now also includes:
 
-- [deploy/core/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/core/README.md)
-- [deploy/module-home-assistant/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/module-home-assistant/README.md)
-- [deploy/service-notification-router/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/service-notification-router/README.md)
+- [../../deploy/core/README.md](../../deploy/core/README.md)
+- [../../deploy/module-home-assistant/README.md](../../deploy/module-home-assistant/README.md)
+- [../../deploy/service-notification-router/README.md](../../deploy/service-notification-router/README.md)
+- [../../deploy/mira-openclaw/README.md](../../deploy/mira-openclaw/README.md)
 
 The first deploy story that combines release-side core with a service path now exists through:
 
-- [examples/service-notification-router/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/examples/service-notification-router/README.md)
+- [../../examples/service-notification-router/README.md](../../examples/service-notification-router/README.md)
+
+The current integrated Mira plus OpenClaw deploy path now also documents:
+
+- host-first provider discovery via `openclaw models status --json`
+- repo-local config normalization including `gateway.mode=local`
+- best-effort validation on older OpenClaw CLIs
+- a configurable startup health window through `MIRA_OPENCLAW_HEALTH_TIMEOUT_MS`
 
 So the current deploy reading order is:
 
-1. [deploy/core/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/core/README.md)
-2. [deploy/service-notification-router/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/service-notification-router/README.md)
-3. [deploy/module-home-assistant/README.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/module-home-assistant/README.md)
+1. [../../deploy/deploy-paths-overview.md](../../deploy/deploy-paths-overview.md)
+2. [../../deploy/mira-openclaw/README.md](../../deploy/mira-openclaw/README.md)
+3. [../../deploy/service-notification-router/README.md](../../deploy/service-notification-router/README.md)
+4. [../../deploy/core/README.md](../../deploy/core/README.md)
+5. [../../deploy/module-home-assistant/README.md](../../deploy/module-home-assistant/README.md)
 
 The page that turns those deploy notes into a single onboarding sequence now lives at:
 
-- [readme/00-overview/getting-started.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/readme/00-overview/getting-started.md)
+- [../00-overview/getting-started.md](../00-overview/getting-started.md)
 
 The operator-facing comparison page now also lives at:
 
-- [deploy/deploy-paths-overview.md](/Users/thomasjwang/Documents/GitHub/Javis-Hackathon/Mira_Released_Version/deploy/deploy-paths-overview.md)
+- [../../deploy/deploy-paths-overview.md](../../deploy/deploy-paths-overview.md)
