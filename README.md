@@ -95,6 +95,8 @@ For the integrated `mira-openclaw` profile, provider resolution is now host-firs
 - allow explicit overrides through `MIRA_OPENCLAW_HOST_PROFILE` or `MIRA_OPENCLAW_HOST_CONFIG_PATH`
 - fail fast with guidance when neither source is configured
 
+`npm run doctor:mira-openclaw` now reports the selected discovery source plus the active host `configPath`, `agentDir`, `stateDir`, and `resolvedDefault`, so it is obvious when Mira followed `openclaw-cli` truth versus a filesystem fallback.
+
 ## Current Status
 
 `Mira_Released_Version/` is under active assembly.

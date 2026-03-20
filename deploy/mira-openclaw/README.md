@@ -101,6 +101,8 @@ Provider resolution order is now:
 - fall back to `OPENAI_API_KEY` or the repo `MIRA_OPENCLAW_PROVIDER_*` env values only if the host has no usable default provider
 - fail fast with next-step guidance if neither source is usable
 
+`npm run doctor:mira-openclaw` surfaces the discovery source and the selected host `configPath`, `agentDir`, `stateDir`, and `resolvedDefault` so operators can see whether Mira trusted `openclaw-cli` or a filesystem fallback.
+
 Optional host-provider overrides:
 
 - `MIRA_OPENCLAW_HOST_PROFILE`

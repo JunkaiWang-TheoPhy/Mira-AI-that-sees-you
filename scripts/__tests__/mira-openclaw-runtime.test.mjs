@@ -332,7 +332,12 @@ test("inspectMiraOpenClawRuntime reports placeholder secrets and start command g
     },
   });
 
-  const inspection = inspectMiraOpenClawRuntime({ rootDir: root });
+  const inspection = inspectMiraOpenClawRuntime({
+    rootDir: root,
+    runCommand() {
+      return { status: 0, stdout: "", stderr: "" };
+    },
+  });
   assert.equal(inspection.runtimeDir, result.runtimeDir);
   assert.equal(inspection.ok, false);
   assert.match(inspection.issues.join("\n"), /no usable provider|MIRA_OPENCLAW_PROVIDER_API_KEY/);
@@ -423,6 +428,9 @@ test("inspectMiraOpenClawRuntime uses the detected openclaw gateway command when
   const inspection = inspectMiraOpenClawRuntime({
     rootDir: root,
     openclawBinary: "/opt/homebrew/bin/openclaw",
+    runCommand() {
+      return { status: 0, stdout: "", stderr: "" };
+    },
   });
   assert.equal(inspection.ok, false);
   assert.equal(
@@ -465,6 +473,9 @@ test("bootstrapMiraOpenClawRuntime inherits the host default provider when repo 
     const inspection = inspectMiraOpenClawRuntime({
       rootDir: root,
       openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
     });
     assert.equal(inspection.ok, true);
     assert.ok(!inspection.issues.some((issue) => issue.includes("provider")));
@@ -556,6 +567,9 @@ test("bootstrapMiraOpenClawRuntime inherits the host provider from the active Op
     const inspection = inspectMiraOpenClawRuntime({
       rootDir: root,
       openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
     });
     assert.equal(inspection.ok, true);
     assert.equal(inspection.provider.hostConfigPath, profiledConfigPath);
@@ -943,6 +957,9 @@ test("bootstrapMiraOpenClawRuntime accepts a host provider backed by OpenClaw au
     const inspection = inspectMiraOpenClawRuntime({
       rootDir: root,
       openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
     });
     assert.equal(inspection.ok, true);
     assert.equal(inspection.provider.source, "host-default");
@@ -1196,7 +1213,12 @@ test("bootstrapMiraOpenClawRuntime accepts OPENAI_API_KEY as the repo fallback p
     assert.equal(generatedConfig.models.providers.openai.api, "openai-responses");
     assert.equal(generatedConfig.agents.defaults.model.primary, "openai/gpt-5.4");
 
-    const inspection = inspectMiraOpenClawRuntime({ rootDir: root });
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
     assert.equal(inspection.ok, true);
     assert.equal(inspection.provider.source, "repo-env");
     assert.ok(!inspection.issues.some((issue) => issue.includes("provider")));
@@ -1288,6 +1310,9 @@ test("bootstrapMiraOpenClawRuntime uses the repo root .env.local fallback for di
     const inspection = inspectMiraOpenClawRuntime({
       rootDir: root,
       openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
     });
     assert.equal(inspection.ok, true);
     assert.equal(inspection.provider.source, "repo-env");
