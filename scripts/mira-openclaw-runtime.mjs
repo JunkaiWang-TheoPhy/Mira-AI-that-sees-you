@@ -36,6 +36,8 @@ const DEFAULT_OPENAI_PROVIDER_ID = "openai";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_OPENAI_PROVIDER_API = "openai-responses";
 const DEFAULT_OPENCLAW_CLI_TIMEOUT_MS = 3000;
+const DEFAULT_PROVIDER_MODE = "auto";
+const VALID_PROVIDER_MODES = new Set(["auto", "host-only", "repo-only"]);
 const BUILTIN_PROVIDER_IDS = new Set([
   "openai",
   "anthropic",
@@ -756,9 +758,10 @@ function resolveHostDefaultProvider(
     runCommand = runCommandSync,
   } = {},
 ) {
+  const hostCandidates = [];
   const explicitHostConfigPath = resolveExplicitHostOpenClawConfigPath(paths);
   if (explicitHostConfigPath) {
-    return probeHostDefaultProvider(
+    const explicitResult = probeHostDefaultProvider(
       paths,
       {
         source: "explicit-override",
@@ -771,6 +774,11 @@ function resolveHostDefaultProvider(
         runCommand,
       },
     );
+    hostCandidates.push(buildHostCandidateTrace(explicitResult));
+    return {
+      ...explicitResult,
+      hostCandidates,
+    };
   }
 
   const activeHostModelsStatusState = queryHostOpenClawModelsStatus(paths, {
@@ -792,9 +800,23 @@ function resolveHostDefaultProvider(
         runCommand,
       },
     );
+    hostCandidates.push(buildHostCandidateTrace(activeHostResult));
     if (activeHostResult.source === "host-default") {
-      return activeHostResult;
+      return {
+        ...activeHostResult,
+        hostCandidates,
+      };
     }
+  } else if (activeHostModelsStatusState.error) {
+    hostCandidates.push({
+      source: "openclaw-cli",
+      status: "unusable",
+      configPath: null,
+      stateDir: process.env.OPENCLAW_STATE_DIR?.trim() || null,
+      agentDir: null,
+      resolvedDefault: null,
+      reason: activeHostModelsStatusState.error,
+    });
   }
 
   let bestMissingResult = activeHostModelsStatusState.error
@@ -824,18 +846,28 @@ function resolveHostDefaultProvider(
         runCommand,
       },
     );
+    hostCandidates.push(buildHostCandidateTrace(candidateResult));
     if (candidateResult.source === "host-default") {
-      return candidateResult;
+      return {
+        ...candidateResult,
+        hostCandidates,
+      };
     }
     if (!bestMissingResult && candidateResult.detail) {
       bestMissingResult = candidateResult;
     }
   }
 
-  return bestMissingResult ?? {
+  return bestMissingResult
+    ? {
+        ...bestMissingResult,
+        hostCandidates,
+      }
+    : {
     source: "none",
     configPath: null,
     detail: "host OpenClaw config does not declare any providers",
+    hostCandidates,
     discovery: {
       source: "filesystem-scan",
       configPath: null,
@@ -843,7 +875,7 @@ function resolveHostDefaultProvider(
       agentDir: null,
       resolvedDefault: null,
     },
-  };
+    };
 }
 
 function resolveRepoProviderFallback(template, env) {
@@ -947,6 +979,39 @@ function buildMissingProviderGuidance(providerSelection) {
   ].join(" ");
 }
 
+function resolveProviderMode(env) {
+  const requestedMode = env.MIRA_OPENCLAW_PROVIDER_MODE?.trim() || DEFAULT_PROVIDER_MODE;
+  return VALID_PROVIDER_MODES.has(requestedMode) ? requestedMode : DEFAULT_PROVIDER_MODE;
+}
+
+function buildRepoFallbackStatus(status, selection = null) {
+  return {
+    status,
+    source: selection?.source ?? null,
+    primaryModel: selection?.primary ?? null,
+  };
+}
+
+function buildHostCandidateTrace(result, explicitStatus = null) {
+  const discovery = result.discovery ?? {
+    source: null,
+    configPath: result.configPath ?? null,
+    stateDir: null,
+    agentDir: null,
+    resolvedDefault: null,
+  };
+
+  return {
+    source: discovery.source,
+    status: explicitStatus ?? (result.source === "host-default" ? "selected" : "unusable"),
+    configPath: discovery.configPath ?? result.configPath ?? null,
+    stateDir: discovery.stateDir ?? null,
+    agentDir: discovery.agentDir ?? null,
+    resolvedDefault: discovery.resolvedDefault ?? null,
+    reason: result.source === "host-default" ? null : result.detail ?? null,
+  };
+}
+
 function resolveProviderSelection(
   paths,
   template,
@@ -956,29 +1021,76 @@ function resolveProviderSelection(
   } = {},
 ) {
   const env = loadMiraOpenClawEnv(paths);
+  const mode = resolveProviderMode(env);
+  const repoProvider = resolveRepoProviderFallback(template, env);
+
+  if (mode === "repo-only") {
+    if (repoProvider.source === "repo-env") {
+      return {
+        ...repoProvider,
+        mode,
+        hostCandidates: [],
+        repoFallback: buildRepoFallbackStatus("selected", repoProvider),
+        discovery: null,
+      };
+    }
+
+    return {
+      source: "missing",
+      mode,
+      hostConfigPath: null,
+      hostDetail: null,
+      discovery: null,
+      hostCandidates: [],
+      repoFallback: buildRepoFallbackStatus("not-configured"),
+    };
+  }
+
   const hostProvider = resolveHostDefaultProvider(paths, {
     openclawBinary,
     runCommand,
   });
   if (hostProvider.source === "host-default") {
-    return hostProvider;
+    return {
+      ...hostProvider,
+      mode,
+      hostCandidates: hostProvider.hostCandidates ?? [],
+      repoFallback: buildRepoFallbackStatus("not-used"),
+    };
   }
 
-  const repoProvider = resolveRepoProviderFallback(template, env);
-  if (repoProvider.source === "repo-env") {
+  if (mode === "host-only") {
     return {
-      ...repoProvider,
+      source: "missing",
+      mode,
       hostConfigPath: hostProvider.configPath,
       hostDetail: hostProvider.detail || null,
       discovery: hostProvider.discovery ?? null,
+      hostCandidates: hostProvider.hostCandidates ?? [],
+      repoFallback: buildRepoFallbackStatus("skipped-host-only"),
+    };
+  }
+
+  if (repoProvider.source === "repo-env") {
+    return {
+      ...repoProvider,
+      mode,
+      hostConfigPath: hostProvider.configPath,
+      hostDetail: hostProvider.detail || null,
+      discovery: hostProvider.discovery ?? null,
+      hostCandidates: hostProvider.hostCandidates ?? [],
+      repoFallback: buildRepoFallbackStatus("selected", repoProvider),
     };
   }
 
   return {
     source: "missing",
+    mode,
     hostConfigPath: hostProvider.configPath,
     hostDetail: hostProvider.detail || null,
     discovery: hostProvider.discovery ?? null,
+    hostCandidates: hostProvider.hostCandidates ?? [],
+    repoFallback: buildRepoFallbackStatus("not-configured"),
   };
 }
 
@@ -1287,10 +1399,13 @@ export function inspectMiraOpenClawRuntime({
     configPath: paths.generatedConfigPath,
     manifestPath: paths.manifestPath,
     provider: {
+      mode: providerSelection.mode ?? DEFAULT_PROVIDER_MODE,
       source: providerSelection.source,
       hostConfigPath: providerSelection.hostConfigPath ?? providerSelection.configPath ?? null,
       primaryModel: providerSelection.primary ?? null,
       discovery: providerSelection.discovery ?? null,
+      hostCandidates: providerSelection.hostCandidates ?? [],
+      repoFallback: providerSelection.repoFallback ?? buildRepoFallbackStatus("not-configured"),
     },
     resolvedStartCommand,
     missing,

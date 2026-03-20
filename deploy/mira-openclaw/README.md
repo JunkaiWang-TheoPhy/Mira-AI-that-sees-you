@@ -99,9 +99,10 @@ Provider resolution order is now:
 - accept host defaults that OpenClaw resolves from built-in providers or `agents/<id>/agent/models.json`, even when `openclaw.json` itself does not spell out a custom `models.providers` block
 - keep workspace-driven profile inference as a last-resort candidate, not the primary discovery path
 - fall back to `OPENAI_API_KEY` or the repo `MIRA_OPENCLAW_PROVIDER_*` env values only if the host has no usable default provider
+- support `MIRA_OPENCLAW_PROVIDER_MODE=auto|host-only|repo-only` when you want to force host inheritance or repo fallback behavior
 - fail fast with next-step guidance if neither source is usable
 
-`npm run doctor:mira-openclaw` surfaces the discovery source and the selected host `configPath`, `agentDir`, `stateDir`, and `resolvedDefault` so operators can see whether Mira trusted `openclaw-cli` or a filesystem fallback.
+`npm run doctor:mira-openclaw` surfaces the discovery source, attempted `hostCandidates[]`, repo fallback status, and the selected host `configPath`, `agentDir`, `stateDir`, and `resolvedDefault` so operators can see whether Mira trusted `openclaw-cli` or a filesystem fallback.
 
 Optional host-provider overrides:
 

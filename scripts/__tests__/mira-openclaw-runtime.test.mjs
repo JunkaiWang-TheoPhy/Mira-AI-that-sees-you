@@ -874,12 +874,29 @@ test("doctorMiraOpenClawRuntime reports OpenClaw CLI discovery details for the s
     });
 
     assert.equal(doctor.ok, true);
+    assert.equal(doctor.provider.mode, "auto");
     assert.deepEqual(doctor.provider.discovery, {
       source: "openclaw-cli",
       configPath: activeConfigPath,
       stateDir: join(fakeHome, ".openclaw"),
       agentDir: activeAgentDir,
       resolvedDefault: "openai-codex/gpt-5.3-codex-spark",
+    });
+    assert.deepEqual(doctor.provider.hostCandidates, [
+      {
+        source: "openclaw-cli",
+        status: "selected",
+        configPath: activeConfigPath,
+        stateDir: join(fakeHome, ".openclaw"),
+        agentDir: activeAgentDir,
+        resolvedDefault: "openai-codex/gpt-5.3-codex-spark",
+        reason: null,
+      },
+    ]);
+    assert.deepEqual(doctor.provider.repoFallback, {
+      status: "not-used",
+      source: null,
+      primaryModel: null,
     });
   } finally {
     if (previousHome === undefined) {
@@ -891,6 +908,122 @@ test("doctorMiraOpenClawRuntime reports OpenClaw CLI discovery details for the s
       delete process.env.OPENCLAW_CONFIG_PATH;
     } else {
       process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousRepoApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoApiKey;
+    }
+  }
+});
+
+test("inspectMiraOpenClawRuntime honors MIRA_OPENCLAW_PROVIDER_MODE=repo-only", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-repo-only-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const hostConfigPath = writeHostOpenClawConfig(root, {
+    providerId: "host-provider",
+    apiKey: "host-key",
+    modelId: "host-model",
+    modelName: "host-model",
+  });
+
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousProviderMode = process.env.MIRA_OPENCLAW_PROVIDER_MODE;
+  const previousRepoApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.OPENCLAW_CONFIG_PATH = hostConfigPath;
+    process.env.MIRA_OPENCLAW_PROVIDER_MODE = "repo-only";
+    process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "repo-key";
+
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    assert.equal(inspection.ok, true);
+    assert.equal(inspection.provider.mode, "repo-only");
+    assert.equal(inspection.provider.source, "repo-env");
+    assert.equal(inspection.provider.primaryModel, "openai/gpt-5.4");
+    assert.deepEqual(inspection.provider.hostCandidates, []);
+    assert.deepEqual(inspection.provider.repoFallback, {
+      status: "selected",
+      source: "repo-env",
+      primaryModel: "openai/gpt-5.4",
+    });
+  } finally {
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousProviderMode === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_MODE;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_MODE = previousProviderMode;
+    }
+    if (previousRepoApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousRepoApiKey;
+    }
+  }
+});
+
+test("inspectMiraOpenClawRuntime honors MIRA_OPENCLAW_PROVIDER_MODE=host-only", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-host-only-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousHostConfigPath = process.env.OPENCLAW_CONFIG_PATH;
+  const previousProviderMode = process.env.MIRA_OPENCLAW_PROVIDER_MODE;
+  const previousRepoApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.OPENCLAW_CONFIG_PATH = TEST_MISSING_HOST_CONFIG_PATH;
+    process.env.MIRA_OPENCLAW_PROVIDER_MODE = "host-only";
+    process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "repo-key";
+
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const inspection = inspectMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    assert.equal(inspection.ok, false);
+    assert.equal(inspection.provider.mode, "host-only");
+    assert.equal(inspection.provider.source, "missing");
+    assert.equal(inspection.provider.repoFallback.status, "skipped-host-only");
+    assert.match(inspection.issues.join("\n"), /no usable provider/i);
+  } finally {
+    if (previousHostConfigPath === undefined) {
+      delete process.env.OPENCLAW_CONFIG_PATH;
+    } else {
+      process.env.OPENCLAW_CONFIG_PATH = previousHostConfigPath;
+    }
+    if (previousProviderMode === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_MODE;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_MODE = previousProviderMode;
     }
     if (previousRepoApiKey === undefined) {
       delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;

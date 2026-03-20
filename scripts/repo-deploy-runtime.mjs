@@ -157,6 +157,12 @@ export function buildRepoDeployManifest(rootDir = DEFAULT_ROOT) {
         requiredEnv: [],
         providerResolution: {
           mode: "host-default-or-repo-fallback",
+          providerModeEnv: "MIRA_OPENCLAW_PROVIDER_MODE",
+          supportedModes: [
+            "auto",
+            "host-only",
+            "repo-only",
+          ],
           hostConfigPathEnv: "OPENCLAW_CONFIG_PATH",
           hostProfileEnv: "MIRA_OPENCLAW_HOST_PROFILE",
           hostConfigPathOverrideEnv: "MIRA_OPENCLAW_HOST_CONFIG_PATH",

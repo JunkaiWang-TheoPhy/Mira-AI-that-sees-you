@@ -91,11 +91,12 @@ For the integrated `mira-openclaw` profile, provider resolution is now host-firs
 - only if that CLI discovery is unusable does Mira scan filesystem candidates such as `~/.openclaw/openclaw.json` and named-profile paths like `~/.openclaw-main/openclaw.json`
 - accept host defaults resolved by OpenClaw itself, including built-in providers declared only by the default model ref and custom providers stored under `agents/<id>/agent/models.json`
 - fall back to repo `MIRA_OPENCLAW_PROVIDER_*` env values only when the host has no usable default provider
+- support `MIRA_OPENCLAW_PROVIDER_MODE=auto|host-only|repo-only` when you need to force host inheritance or repo fallback behavior
 - keep workspace profile inference as a last-resort filesystem hint rather than the primary source of truth
 - allow explicit overrides through `MIRA_OPENCLAW_HOST_PROFILE` or `MIRA_OPENCLAW_HOST_CONFIG_PATH`
 - fail fast with guidance when neither source is configured
 
-`npm run doctor:mira-openclaw` now reports the selected discovery source plus the active host `configPath`, `agentDir`, `stateDir`, and `resolvedDefault`, so it is obvious when Mira followed `openclaw-cli` truth versus a filesystem fallback.
+`npm run doctor:mira-openclaw` now reports the selected discovery source, attempted `hostCandidates[]`, repo fallback status, and the active host `configPath`, `agentDir`, `stateDir`, and `resolvedDefault`, so it is obvious when Mira followed `openclaw-cli` truth versus a filesystem fallback.
 
 ## Current Status
 
