@@ -98,6 +98,10 @@ For the integrated `mira-openclaw` profile, provider resolution is now host-firs
 
 `npm run doctor:mira-openclaw` now reports the selected discovery source, attempted `hostCandidates[]`, repo fallback status, and the active host `configPath`, `agentDir`, `stateDir`, and `resolvedDefault`, so it is obvious when Mira followed `openclaw-cli` truth versus a filesystem fallback.
 
+The generated local OpenClaw runtime config is also normalized for compatibility now: Mira writes `gateway.mode=local` into the repo-local `openclaw.local.json`, and `doctor` treats unsupported `openclaw config validate` subcommands as warnings rather than fatal startup blockers on older OpenClaw CLIs.
+
+The repo-level integrated deploy path now also uses a wider default health window of `45000ms`, configurable through `MIRA_OPENCLAW_HEALTH_TIMEOUT_MS` in the root `.env.local`, so slower host OpenClaw boots do not fail one-command deploys prematurely.
+
 ## Current Status
 
 `Mira_Released_Version/` is under active assembly.

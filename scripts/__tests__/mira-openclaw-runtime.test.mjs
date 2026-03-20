@@ -320,6 +320,22 @@ test("bootstrapMiraOpenClawRuntime generates a local runtime pack and config man
   assert.equal(manifest.openClawStateDir, join(result.runtimeDir, "openclaw-state"));
 });
 
+test("bootstrapMiraOpenClawRuntime writes gateway.mode=local into the generated runtime config", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-gateway-mode-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const result = bootstrapMiraOpenClawRuntime({
+    rootDir: root,
+    runCommand() {
+      return { status: 0, stdout: "", stderr: "" };
+    },
+  });
+
+  const config = JSON.parse(readFileSync(result.configPath, "utf8"));
+  assert.equal(config.gateway.mode, "local");
+});
+
 test("inspectMiraOpenClawRuntime reports placeholder secrets and start command gaps", () => {
   const root = mkdtempSync(join(tmpdir(), "mira-openclaw-inspect-"));
   writeNotificationRouterFixture(root);
@@ -1541,6 +1557,105 @@ test("doctorMiraOpenClawRuntime validates the generated config through openclaw"
   }
 });
 
+test("doctorMiraOpenClawRuntime skips unsupported validate commands on older OpenClaw CLIs", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-doctor-skip-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "test-key";
+
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const result = doctorMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(_command, args) {
+        if (args[0] === "config" && args[1] === "validate") {
+          throw new Error("error: unknown option '--json'");
+        }
+        return {
+          status: 0,
+          stdout: "",
+          stderr: "",
+        };
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.configValidation.ok, true);
+    assert.equal(result.configValidation.skipped, true);
+    assert.equal(result.configValidation.reason, "unsupported-command");
+    assert.match(result.warnings.join("\n"), /validation/i);
+    assert.match(result.warnings.join("\n"), /unsupported|skipped/i);
+  } finally {
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+  }
+});
+
+test("doctorMiraOpenClawRuntime skips validate when openclaw config --help does not advertise a validate subcommand", () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-doctor-help-skip-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+
+  try {
+    process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "test-key";
+
+    bootstrapMiraOpenClawRuntime({
+      rootDir: root,
+      runCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const result = doctorMiraOpenClawRuntime({
+      rootDir: root,
+      openclawBinary: "/opt/homebrew/bin/openclaw",
+      runCommand(_command, args) {
+        if (args[0] === "config" && args[1] === "validate") {
+          throw new Error(`Command failed (/opt/homebrew/bin/openclaw ${args.join(" ")}): exit 1`);
+        }
+        if (args[0] === "config" && args[1] === "--help") {
+          return {
+            status: 0,
+            stdout: "Usage: openclaw config [options]\nCommands:\n  get\n  set\n  unset\n",
+            stderr: "",
+          };
+        }
+        return {
+          status: 0,
+          stdout: "",
+          stderr: "",
+        };
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.configValidation.ok, true);
+    assert.equal(result.configValidation.skipped, true);
+    assert.equal(result.configValidation.reason, "unsupported-command");
+  } finally {
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+  }
+});
+
 test("startMiraOpenClawRuntime auto-starts the notification-router sidecar before launching OpenClaw", async () => {
   const root = mkdtempSync(join(tmpdir(), "mira-openclaw-start-stack-"));
   writeNotificationRouterFixture(root);
@@ -1921,6 +2036,63 @@ test("up/status/down mira-openclaw manage a detached integrated-stack supervisor
       delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
     } else {
       process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+  }
+});
+
+test("upMiraOpenClawRuntime forwards the configured health timeout to the integrated stack waiter", async () => {
+  const root = mkdtempSync(join(tmpdir(), "mira-openclaw-health-timeout-"));
+  writeNotificationRouterFixture(root);
+  writeMiraFixture(root);
+
+  const previousApiKey = process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+  const previousHealthTimeout = process.env.MIRA_OPENCLAW_HEALTH_TIMEOUT_MS;
+  process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = "test-key";
+  process.env.MIRA_OPENCLAW_HEALTH_TIMEOUT_MS = "45000";
+
+  try {
+    const observed = [];
+    const result = await upMiraOpenClawRuntime({
+      rootDir: root,
+      bootstrapRunCommand() {
+        return { status: 0, stdout: "", stderr: "" };
+      },
+      spawnDetachedProcess() {
+        return { pid: 67890 };
+      },
+      waitForStackHealth(options) {
+        observed.push(options.timeoutMs);
+        return Promise.resolve({
+          ok: true,
+          gateway: { ok: true, host: "127.0.0.1", port: 18890 },
+          notificationRouter: { status: 200, body: { ok: true } },
+        });
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.deepEqual(observed, [45000]);
+  } finally {
+    downMiraOpenClawRuntime({
+      rootDir: root,
+      isProcessAlive() {
+        return false;
+      },
+      stopDetachedProcess() {
+        return true;
+      },
+    });
+
+    if (previousApiKey === undefined) {
+      delete process.env.MIRA_OPENCLAW_PROVIDER_API_KEY;
+    } else {
+      process.env.MIRA_OPENCLAW_PROVIDER_API_KEY = previousApiKey;
+    }
+
+    if (previousHealthTimeout === undefined) {
+      delete process.env.MIRA_OPENCLAW_HEALTH_TIMEOUT_MS;
+    } else {
+      process.env.MIRA_OPENCLAW_HEALTH_TIMEOUT_MS = previousHealthTimeout;
     }
   }
 });

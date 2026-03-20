@@ -36,6 +36,7 @@ const DEFAULT_OPENAI_PROVIDER_ID = "openai";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_OPENAI_PROVIDER_API = "openai-responses";
 const DEFAULT_OPENCLAW_CLI_TIMEOUT_MS = 3000;
+const DEFAULT_MIRA_OPENCLAW_HEALTH_TIMEOUT_MS = 45000;
 const DEFAULT_PROVIDER_MODE = "auto";
 const VALID_PROVIDER_MODES = new Set(["auto", "host-only", "repo-only"]);
 const BUILTIN_PROVIDER_IDS = new Set([
@@ -212,6 +213,10 @@ function buildGeneratedOpenClawConfig(
 
   const generatedConfig = {
     ...template,
+    gateway: {
+      ...(template.gateway ?? {}),
+      mode: env.MIRA_OPENCLAW_GATEWAY_MODE || template.gateway?.mode || "local",
+    },
     models: {
       ...template.models,
       providers: providerConfig,
@@ -251,6 +256,126 @@ function buildGeneratedOpenClawConfig(
   };
 
   return mergeInstalledPluginMetadata(generatedConfig, installedConfig);
+}
+
+function extractCommandErrorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isUnsupportedOpenClawValidateMessage(message) {
+  if (typeof message !== "string") {
+    return false;
+  }
+
+  const normalizedMessage = message.toLowerCase();
+  return (
+    normalizedMessage.includes("unknown option '--json'")
+    || normalizedMessage.includes("unknown option \"--json\"")
+    || normalizedMessage.includes("too many arguments for 'config'")
+    || normalizedMessage.includes("too many arguments for `config`")
+    || (normalizedMessage.includes("unknown command") && normalizedMessage.includes("validate"))
+    || (normalizedMessage.includes("did you mean") && normalizedMessage.includes("config"))
+  );
+}
+
+function probeOpenClawConfigHelp(
+  paths,
+  {
+    openclawBinary,
+    runCommand = runCommandSync,
+  } = {},
+) {
+  const resolvedOpenClawBinary = resolveOpenClawBinary(openclawBinary);
+  if (!resolvedOpenClawBinary) {
+    return null;
+  }
+
+  try {
+    const result = runCommand(
+      resolvedOpenClawBinary,
+      ["config", "--help"],
+      {
+        cwd: paths.runtimeDir,
+        env: buildOpenClawRuntimeEnv(paths),
+        stdio: "pipe",
+      },
+    );
+    return `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  } catch {
+    return null;
+  }
+}
+
+function validateGeneratedOpenClawConfig(
+  paths,
+  {
+    openclawBinary,
+    runCommand = runCommandSync,
+  } = {},
+) {
+  const resolvedOpenClawBinary = resolveOpenClawBinary(openclawBinary);
+  if (!resolvedOpenClawBinary) {
+    return null;
+  }
+
+  const baseOptions = {
+    cwd: paths.runtimeDir,
+    env: buildOpenClawRuntimeEnv(paths),
+    stdio: "pipe",
+  };
+
+  try {
+    const result = runCommand(
+      resolvedOpenClawBinary,
+      ["config", "validate", "--json"],
+      baseOptions,
+    );
+    const stdout = (result.stdout ?? "").trim();
+    return stdout ? JSON.parse(stdout) : { ok: true };
+  } catch (jsonValidationError) {
+    const jsonValidationMessage = extractCommandErrorMessage(jsonValidationError);
+
+    try {
+      runCommand(
+        resolvedOpenClawBinary,
+        ["config", "validate"],
+        baseOptions,
+      );
+      return {
+        ok: true,
+        format: "plain",
+      };
+    } catch (plainValidationError) {
+      const plainValidationMessage = extractCommandErrorMessage(plainValidationError);
+      const configHelpText = probeOpenClawConfigHelp(paths, {
+        openclawBinary: resolvedOpenClawBinary,
+        runCommand,
+      });
+      const helpAdvertisesValidate =
+        typeof configHelpText === "string" && /\bvalidate\b/u.test(configHelpText);
+
+      if (
+        isUnsupportedOpenClawValidateMessage(jsonValidationMessage)
+        || isUnsupportedOpenClawValidateMessage(plainValidationMessage)
+        || helpAdvertisesValidate === false
+      ) {
+        return {
+          ok: true,
+          skipped: true,
+          reason: "unsupported-command",
+          detail:
+            (!helpAdvertisesValidate && configHelpText)
+              ? "openclaw config --help does not advertise a validate subcommand"
+              : plainValidationMessage || jsonValidationMessage,
+        };
+      }
+
+      return {
+        ok: false,
+        error: plainValidationMessage || jsonValidationMessage,
+      };
+    }
+  }
 }
 
 function inferOpenClawProfileFromStateDir(stateDir) {
@@ -1154,6 +1279,20 @@ function buildNotificationRouterSidecarState(rootDir) {
   };
 }
 
+function resolveMiraOpenClawHealthTimeoutMs(paths) {
+  const env = loadMiraOpenClawEnv(paths);
+  const configuredTimeout = Number.parseInt(
+    env.MIRA_OPENCLAW_HEALTH_TIMEOUT_MS || "",
+    10,
+  );
+
+  if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+    return configuredTimeout;
+  }
+
+  return DEFAULT_MIRA_OPENCLAW_HEALTH_TIMEOUT_MS;
+}
+
 function resolveGatewayConnectionState(rootDir) {
   const paths = resolveMiraOpenClawPaths(rootDir);
   const env = loadMiraOpenClawEnv(paths);
@@ -1436,26 +1575,18 @@ export function doctorMiraOpenClawRuntime({
       };
     }
 
-    try {
-      const result = runCommand(
-        resolvedOpenClawBinary,
-        ["config", "validate", "--json"],
-        {
-          cwd: paths.runtimeDir,
-          env: buildOpenClawRuntimeEnv(paths),
-          stdio: "pipe",
-        },
-      );
+    configValidation = validateGeneratedOpenClawConfig(paths, {
+      openclawBinary: resolvedOpenClawBinary,
+      runCommand,
+    });
 
-      const stdout = (result.stdout ?? "").trim();
-      configValidation = stdout ? JSON.parse(stdout) : { ok: true };
-    } catch (error) {
-      configValidation = {
-        ok: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
+    if (configValidation?.skipped) {
       warnings.push(
-        `openclaw config validation could not be completed: ${error instanceof Error ? error.message : String(error)}`,
+        `openclaw config validation was skipped because this OpenClaw CLI does not support it: ${configValidation.detail ?? "unsupported validate command"}`,
+      );
+    } else if (configValidation && !configValidation.ok) {
+      warnings.push(
+        `openclaw config validation could not be completed: ${configValidation.error ?? "unknown validation failure"}`,
       );
     }
   }
@@ -1515,7 +1646,7 @@ export async function checkMiraOpenClawHealth({
 export async function waitForMiraOpenClawHealth({
   rootDir = DEFAULT_ROOT,
   openclawBinary,
-  timeoutMs = 20000,
+  timeoutMs = DEFAULT_MIRA_OPENCLAW_HEALTH_TIMEOUT_MS,
   intervalMs = 500,
   checkStackHealth = checkMiraOpenClawHealth,
 } = {}) {
@@ -1541,6 +1672,7 @@ export async function upMiraOpenClawRuntime({
   isProcessAlive: processAlive = isProcessAlive,
 } = {}) {
   const paths = resolveMiraOpenClawPaths(rootDir);
+  const healthTimeoutMs = resolveMiraOpenClawHealthTimeoutMs(paths);
   bootstrapMiraOpenClawRuntime({
     rootDir,
     runCommand: bootstrapRunCommand,
@@ -1560,7 +1692,11 @@ export async function upMiraOpenClawRuntime({
 
   const existingState = readMiraOpenClawProcessState(paths);
   if (existingState?.pid && processAlive(existingState.pid)) {
-    const health = await waitForStackHealth({ rootDir, openclawBinary });
+    const health = await waitForStackHealth({
+      rootDir,
+      openclawBinary,
+      timeoutMs: healthTimeoutMs,
+    });
     return {
       ok: health.ok,
       alreadyRunning: true,
@@ -1596,7 +1732,11 @@ export async function upMiraOpenClawRuntime({
   });
 
   try {
-    const health = await waitForStackHealth({ rootDir, openclawBinary });
+    const health = await waitForStackHealth({
+      rootDir,
+      openclawBinary,
+      timeoutMs: healthTimeoutMs,
+    });
     return {
       ok: health.ok,
       alreadyRunning: false,

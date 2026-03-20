@@ -14,6 +14,8 @@ Running the root bootstrap command creates:
 - `.mira-runtime/notification-router/` as the local outbound sidecar runtime pack
 - machine-readable runtime manifests for both packs
 
+The generated `openclaw.local.json` is normalized for compatibility with current OpenClaw gateway CLIs and now includes `gateway.mode=local` by default.
+
 When a local `openclaw` CLI is available, the bootstrap also:
 
 - installs the bundled `lingzhu` plugin shell into a repo-local OpenClaw state directory
@@ -118,6 +120,7 @@ Only set this when you need the repo fallback provider path:
 Optional overrides:
 
 - `MIRA_OPENCLAW_GATEWAY_PORT`
+- `MIRA_OPENCLAW_HEALTH_TIMEOUT_MS`
 - `MIRA_OPENCLAW_ENABLE_NOTIFICATION_ROUTER`
 - `OPENCLAW_START_COMMAND`
 - `OPENCLAW_BIN`
@@ -139,7 +142,11 @@ If you need to run against an already managed external `notification-router`, se
 `npm run doctor:mira-openclaw` now does two checks:
 
 - release-pack completeness and placeholder-secret inspection
-- `openclaw config validate --json` against the generated repo-local config when a local `openclaw` CLI is available
+- best-effort `openclaw config validate` against the generated repo-local config when a local `openclaw` CLI is available
+
+If the installed OpenClaw CLI does not support `config validate --json` or `config validate`, Mira records that validation as `skipped` and keeps it as a warning instead of a fatal failure.
+
+`npm run deploy:mira-openclaw` now waits up to `45000ms` for the integrated stack to become healthy by default. Override that startup budget with `MIRA_OPENCLAW_HEALTH_TIMEOUT_MS` when the host is faster or slower than the default.
 
 `npm run health:mira-openclaw` checks the integrated stack shape:
 
