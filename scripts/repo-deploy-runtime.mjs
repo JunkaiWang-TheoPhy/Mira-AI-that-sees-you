@@ -160,6 +160,12 @@ export function buildRepoDeployManifest(rootDir = DEFAULT_ROOT) {
           hostConfigPathEnv: "OPENCLAW_CONFIG_PATH",
           hostProfileEnv: "MIRA_OPENCLAW_HOST_PROFILE",
           hostConfigPathOverrideEnv: "MIRA_OPENCLAW_HOST_CONFIG_PATH",
+          discoveryOrder: [
+            "explicit-host-config",
+            "openclaw-cli",
+            "filesystem-candidates",
+            "repo-fallback",
+          ],
           workspaceProfileAutoDetect: true,
           fallbackEnv: [
             "OPENAI_API_KEY",
