@@ -25,6 +25,7 @@ When you run `npm run start:mira-openclaw`, the runtime now also:
 
 - probes the generated `notification-router` sidecar health endpoint
 - auto-starts the sidecar if it is not already running
+- auto-starts the repo-owned `lingzhu-live-adapter` sidecar when enabled
 - tears the sidecar down again when the OpenClaw foreground process exits
 
 When you run `npm run deploy:mira-openclaw`, the runtime instead:
@@ -122,6 +123,14 @@ Optional overrides:
 - `MIRA_OPENCLAW_GATEWAY_PORT`
 - `MIRA_OPENCLAW_HEALTH_TIMEOUT_MS`
 - `MIRA_OPENCLAW_ENABLE_NOTIFICATION_ROUTER`
+- `MIRA_OPENCLAW_ENABLE_LEGACY_LINGZHU`
+- `MIRA_OPENCLAW_ENABLE_LINGZHU_ADAPTER`
+- `MIRA_LINGZHU_AUTH_AK`
+- `MIRA_LINGZHU_ADAPTER_PORT`
+- `MIRA_LINGZHU_AGENT_ID`
+- `MIRA_LINGZHU_SESSION_MODE`
+- `MIRA_LINGZHU_SESSION_NAMESPACE`
+- `MIRA_LINGZHU_MEMORY_STORE_PATH`
 - `OPENCLAW_START_COMMAND`
 - `OPENCLAW_BIN`
 
@@ -152,6 +161,7 @@ If the installed OpenClaw CLI does not support `config validate --json` or `conf
 
 - the generated runtime pack still passes local inspection
 - `notification-router` answers `GET /v1/health`
+- `lingzhu-live-adapter` answers `GET /metis/agent/api/health` when enabled
 - the OpenClaw gateway port is listening on `127.0.0.1`
 
 `npm run self-check:mira-openclaw` runs that same integrated health gate first, then dispatches the local `notification-router` self-check path.
@@ -166,6 +176,45 @@ Those repo-level defaults load root `.env` and `.env.local` automatically before
 
 ## Current Scope
 
-This path now boots a valid local OpenClaw runtime pack for the release-safe Mira core plus the bundled `lingzhu` plugin shell.
+This path now boots a valid local OpenClaw runtime pack for the release-safe Mira core and a repo-owned Lingzhu live adapter.
 
-It does not yet restore the full live Lingzhu HTTP transport from the private runtime.
+The intended split is:
+
+- OpenClaw gateway stays on `127.0.0.1:${MIRA_OPENCLAW_GATEWAY_PORT:-18790}`
+- the repo-owned adapter exposes `GET /metis/agent/api/health`
+- the repo-owned adapter exposes `POST /metis/agent/api/sse`
+- the bundled `lingzhu` plugin shell remains installed only as a legacy reference and is disabled by default
+
+Recommended public entrypoint:
+
+```text
+http://<public-ip>:18789/metis/agent/api/sse
+```
+
+Minimal manual probe:
+
+```bash
+curl -N http://127.0.0.1:18789/metis/agent/api/sse \
+  -H "Authorization: Bearer $MIRA_LINGZHU_AUTH_AK" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message_id": "manual-probe-001",
+    "agent_id": "main",
+    "user_id": "manual-probe",
+    "message": [
+      {
+        "role": "user",
+        "type": "text",
+        "text": "执行 lingzhu 的测试"
+      }
+    ]
+  }'
+```
+
+Recommended Lingzhu defaults:
+
+- `MIRA_LINGZHU_AGENT_ID=main`
+- `MIRA_LINGZHU_SESSION_MODE=per_user`
+- `MIRA_LINGZHU_SESSION_NAMESPACE=mira-lingzhu-prod`
+
+This keeps persona and memory boundaries inside the repo instead of the legacy plugin transport.

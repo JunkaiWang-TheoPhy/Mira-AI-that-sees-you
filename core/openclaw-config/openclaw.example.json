@@ -1,6 +1,15 @@
 {
   "gateway": {
-    "mode": "local"
+    "mode": "local",
+    "bind": "loopback",
+    "port": 18790,
+    "http": {
+      "endpoints": {
+        "chatCompletions": {
+          "enabled": true
+        }
+      }
+    }
   },
   "models": {
     "mode": "merge",
@@ -43,11 +52,13 @@
     ],
     "entries": {
       "lingzhu": {
-        "enabled": true,
+        "enabled": false,
         "config": {
           "agentId": "main",
           "systemPrompt": "<load release-safe prompt from ./core/openclaw-config/lingzhu-system-prompt.txt>",
-          "memoryContextEnabled": true,
+          "sessionMode": "per_user",
+          "sessionNamespace": "mira-lingzhu-prod",
+          "memoryContextEnabled": false,
           "memoryContextUrl": "http://127.0.0.1:3301/v1/memory/context",
           "memoryContextAudience": "auto",
           "memoryContextTimeoutMs": 1500,

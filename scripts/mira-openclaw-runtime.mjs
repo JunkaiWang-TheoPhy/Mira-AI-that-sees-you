@@ -89,6 +89,9 @@ export function resolveMiraOpenClawPaths(rootDir = DEFAULT_ROOT) {
     workspaceSourceDir: join(rootDir, "core", "workspace"),
     pluginSourceDir: join(rootDir, "core", "plugins", "lingzhu-bridge"),
     pluginRuntimeDir: join(runtimeDir, "core", "plugins", "lingzhu-bridge"),
+    adapterSourceDir: join(rootDir, "services", "lingzhu-live-adapter"),
+    adapterRuntimeDir: join(runtimeDir, "services", "lingzhu-live-adapter"),
+    adapterConfigPath: join(runtimeDir, "services", "lingzhu-live-adapter", "adapter.config.json"),
     openClawStateDir: join(runtimeDir, "openclaw-state"),
     manifestPath: join(runtimeDir, "runtime-manifest.json"),
     processStatePath: join(runtimeDir, "runtime-process.json"),
@@ -124,6 +127,10 @@ function syncMiraOpenClawRuntime(paths) {
       join(paths.pluginSourceDir, "README.md"),
       join(paths.pluginRuntimeDir, "README.md"),
     );
+  }
+
+  if (existsSync(paths.adapterSourceDir)) {
+    copyPath(paths.adapterSourceDir, paths.adapterRuntimeDir);
   }
 }
 
@@ -216,6 +223,20 @@ function buildGeneratedOpenClawConfig(
     gateway: {
       ...(template.gateway ?? {}),
       mode: env.MIRA_OPENCLAW_GATEWAY_MODE || template.gateway?.mode || "local",
+      bind: env.MIRA_OPENCLAW_GATEWAY_BIND || template.gateway?.bind || "loopback",
+      port: Number.parseInt(env.MIRA_OPENCLAW_GATEWAY_PORT || "", 10)
+        || template.gateway?.port
+        || 18790,
+      http: {
+        ...(template.gateway?.http ?? {}),
+        endpoints: {
+          ...(template.gateway?.http?.endpoints ?? {}),
+          chatCompletions: {
+            ...(template.gateway?.http?.endpoints?.chatCompletions ?? {}),
+            enabled: true,
+          },
+        },
+      },
     },
     models: {
       ...template.models,
@@ -239,6 +260,7 @@ function buildGeneratedOpenClawConfig(
         ...template.plugins.entries,
         lingzhu: {
           ...template.plugins.entries.lingzhu,
+          enabled: toBoolean(env.MIRA_OPENCLAW_ENABLE_LEGACY_LINGZHU, false),
           config: {
             ...template.plugins.entries.lingzhu.config,
             systemPrompt: prompt,
@@ -256,6 +278,28 @@ function buildGeneratedOpenClawConfig(
   };
 
   return mergeInstalledPluginMetadata(generatedConfig, installedConfig);
+}
+
+function buildLingzhuAdapterConfig(paths) {
+  const env = loadMiraOpenClawEnv(paths);
+
+  return {
+    listenHost: "0.0.0.0",
+    listenPort: Number.parseInt(env.MIRA_LINGZHU_ADAPTER_PORT || "", 10) || 18789,
+    authAk: env.MIRA_LINGZHU_AUTH_AK || "replace-me",
+    openclawBaseUrl: `http://127.0.0.1:${Number.parseInt(
+      env.MIRA_OPENCLAW_GATEWAY_PORT || "",
+      10,
+    ) || 18790}`,
+    agentId: env.MIRA_LINGZHU_AGENT_ID || "main",
+    sessionMode: env.MIRA_LINGZHU_SESSION_MODE || "per_user",
+    sessionNamespace: env.MIRA_LINGZHU_SESSION_NAMESPACE || "mira-lingzhu-prod",
+    systemPromptPath: paths.promptRuntimePath,
+    memoryStorePath:
+      env.MIRA_LINGZHU_MEMORY_STORE_PATH
+      || join(paths.runtimeDir, "var", "mira-memory.sqlite"),
+    memoryMaxItems: 8,
+  };
 }
 
 function extractCommandErrorMessage(error) {
@@ -1231,9 +1275,12 @@ function buildMiraOpenClawManifest(paths) {
     openClawStateDir: paths.openClawStateDir,
     workspacePath: join(paths.runtimeDir, "core", "workspace"),
     pluginPackagePath: paths.pluginRuntimeDir,
+    adapterPackagePath: paths.adapterRuntimeDir,
+    adapterConfigPath: paths.adapterConfigPath,
     systemPromptPath: paths.promptRuntimePath,
     notificationRouterManifestPath: notificationRouterPaths.manifestPath,
-    gatewayPort: env.MIRA_OPENCLAW_GATEWAY_PORT || "18890",
+    gatewayPort: env.MIRA_OPENCLAW_GATEWAY_PORT || "18790",
+    adapterPort: env.MIRA_LINGZHU_ADAPTER_PORT || "18789",
     processStatePath: paths.processStatePath,
     logPath: paths.logPath,
     startCommandEnv: "OPENCLAW_START_COMMAND",
@@ -1255,6 +1302,7 @@ function buildOpenClawBootstrapEnv(paths) {
     OPENCLAW_STATE_DIR: paths.openClawStateDir,
     MIRA_OPENCLAW_RUNTIME_ROOT: paths.runtimeDir,
     MIRA_OPENCLAW_PLUGIN_PATH: paths.pluginRuntimeDir,
+    MIRA_LINGZHU_ADAPTER_CONFIG_PATH: paths.adapterConfigPath,
     MIRA_NOTIFICATION_ROUTER_MANIFEST_PATH: resolveNotificationRouterPaths(paths.rootDir).manifestPath,
   };
 }
@@ -1279,6 +1327,28 @@ function buildNotificationRouterSidecarState(rootDir) {
   };
 }
 
+function buildLingzhuAdapterRuntimeEnv(paths) {
+  return {
+    ...buildOpenClawRuntimeEnv(paths),
+    MIRA_LINGZHU_ADAPTER_CONFIG_PATH: paths.adapterConfigPath,
+  };
+}
+
+function buildLingzhuAdapterSidecarState(rootDir) {
+  const paths = resolveMiraOpenClawPaths(rootDir);
+  const env = loadMiraOpenClawEnv(paths);
+  const port = Number.parseInt(env.MIRA_LINGZHU_ADAPTER_PORT || "18789", 10);
+  const resolvedPort = Number.isFinite(port) ? port : 18789;
+  const baseUrl = `http://127.0.0.1:${resolvedPort}`;
+
+  return {
+    paths,
+    port: resolvedPort,
+    baseUrl,
+    healthUrl: `${baseUrl}/metis/agent/api/health`,
+  };
+}
+
 function resolveMiraOpenClawHealthTimeoutMs(paths) {
   const env = loadMiraOpenClawEnv(paths);
   const configuredTimeout = Number.parseInt(
@@ -1296,7 +1366,7 @@ function resolveMiraOpenClawHealthTimeoutMs(paths) {
 function resolveGatewayConnectionState(rootDir) {
   const paths = resolveMiraOpenClawPaths(rootDir);
   const env = loadMiraOpenClawEnv(paths);
-  const port = Number.parseInt(env.MIRA_OPENCLAW_GATEWAY_PORT || "18890", 10);
+  const port = Number.parseInt(env.MIRA_OPENCLAW_GATEWAY_PORT || "18790", 10);
 
   return {
     host: "127.0.0.1",
@@ -1335,6 +1405,41 @@ export async function probeNotificationRouterHealth({
   } catch {
     return false;
   }
+}
+
+export async function probeLingzhuAdapterHealth({
+  rootDir = DEFAULT_ROOT,
+  timeoutMs = 800,
+} = {}) {
+  const { healthUrl } = buildLingzhuAdapterSidecarState(rootDir);
+
+  try {
+    const result = await fetchJsonWithTimeout(healthUrl, timeoutMs);
+    return result.status === 200 && result.body?.ok === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function waitForLingzhuAdapterHealth({
+  rootDir = DEFAULT_ROOT,
+  timeoutMs = 15000,
+  intervalMs = 250,
+} = {}) {
+  const startedAt = Date.now();
+  const { healthUrl } = buildLingzhuAdapterSidecarState(rootDir);
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (await probeLingzhuAdapterHealth({ rootDir, timeoutMs: Math.min(intervalMs, 1000) })) {
+      return {
+        ok: true,
+        healthUrl,
+      };
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, intervalMs));
+  }
+
+  throw new Error(`lingzhu-live-adapter did not become healthy: ${healthUrl}`);
 }
 
 export async function waitForNotificationRouterHealth({
@@ -1461,6 +1566,14 @@ export function bootstrapMiraOpenClawRuntime({
     });
   }
 
+  if (existsSync(join(paths.adapterRuntimeDir, "package.json"))
+    && !existsSync(join(paths.adapterRuntimeDir, "node_modules"))) {
+    runCommand("npm", ["install", "--no-fund", "--no-audit"], {
+      cwd: paths.adapterRuntimeDir,
+      stdio: "inherit",
+    });
+  }
+
   const resolvedOpenClawBinary = resolveOpenClawBinary(openclawBinary);
   let installedPluginConfig = null;
   if (resolvedOpenClawBinary) {
@@ -1483,6 +1596,7 @@ export function bootstrapMiraOpenClawRuntime({
       runCommand,
     }),
   );
+  writeJsonFile(paths.adapterConfigPath, buildLingzhuAdapterConfig(paths));
   writeJsonFile(paths.manifestPath, buildMiraOpenClawManifest(paths));
 
   return {
@@ -1502,10 +1616,13 @@ export function inspectMiraOpenClawRuntime({
   const template = JSON.parse(readFileSync(paths.configTemplatePath, "utf8"));
   const missing = [
     paths.runtimeDir,
-    join(paths.runtimeDir, "core", "persona", "SOUL.md"),
     join(paths.runtimeDir, "core", "workspace", "AGENTS.md"),
+    join(paths.runtimeDir, "core", "workspace", "SOUL.md"),
+    join(paths.runtimeDir, "core", "workspace", "IDENTITY.md"),
     join(paths.pluginRuntimeDir, "package.json"),
+    join(paths.adapterRuntimeDir, "package.json"),
     paths.generatedConfigPath,
+    paths.adapterConfigPath,
     paths.envFilePath,
     paths.manifestPath,
   ].filter((path) => !existsSync(path));
@@ -1525,6 +1642,12 @@ export function inspectMiraOpenClawRuntime({
   }
   if (!resolvedStartCommand) {
     issues.push("OPENCLAW_START_COMMAND is not configured yet.");
+  }
+  if (
+    toBoolean(env.MIRA_OPENCLAW_ENABLE_LINGZHU_ADAPTER, true)
+    && isPlaceholderValue(env.MIRA_LINGZHU_AUTH_AK)
+  ) {
+    issues.push("MIRA_LINGZHU_AUTH_AK is not configured yet.");
   }
 
   const warnings = [];
@@ -1631,15 +1754,30 @@ export async function checkMiraOpenClawHealth({
     };
   }
 
+  let adapter = null;
+  if (
+    toBoolean(
+      loadMiraOpenClawEnv(resolveMiraOpenClawPaths(rootDir)).MIRA_OPENCLAW_ENABLE_LINGZHU_ADAPTER,
+      true,
+    )
+  ) {
+    adapter = {
+      ok: await probeLingzhuAdapterHealth({ rootDir }),
+      ...buildLingzhuAdapterSidecarState(rootDir),
+    };
+  }
+
   return {
     ok:
       inspection.ok
       && routerHealth.status === 200
       && routerHealth.body?.ok === true
-      && gateway.ok === true,
+      && gateway.ok === true
+      && (adapter?.ok ?? true),
     inspection,
     notificationRouter: routerHealth,
     gateway,
+    adapter,
   };
 }
 
@@ -1854,6 +1992,7 @@ export async function startMiraOpenClawRuntime({
   openclawBinary,
   probeNotificationRouterHealth: probeRouterHealth = probeNotificationRouterHealth,
   waitForNotificationRouterHealth: waitForRouterHealth = waitForNotificationRouterHealth,
+  waitForLingzhuAdapterHealth: waitForAdapterHealth = waitForLingzhuAdapterHealth,
   startBackgroundProcess: startBackgroundSidecar = startBackgroundProcess,
 } = {}) {
   const paths = resolveMiraOpenClawPaths(rootDir);
@@ -1876,6 +2015,7 @@ export async function startMiraOpenClawRuntime({
 
   const env = buildOpenClawRuntimeEnv(paths);
   let notificationRouterSidecar = null;
+  let lingzhuAdapterSidecar = null;
 
   if (toBoolean(env.MIRA_OPENCLAW_ENABLE_NOTIFICATION_ROUTER, true)) {
     const routerInspection = inspectNotificationRouterRuntime({ rootDir });
@@ -1911,6 +2051,26 @@ export async function startMiraOpenClawRuntime({
     }
   }
 
+  if (toBoolean(env.MIRA_OPENCLAW_ENABLE_LINGZHU_ADAPTER, true)) {
+    lingzhuAdapterSidecar = startBackgroundSidecar(
+      "npm",
+      ["run", "start"],
+      {
+        cwd: paths.adapterRuntimeDir,
+        env: buildLingzhuAdapterRuntimeEnv(paths),
+        stdio: "inherit",
+      },
+    );
+
+    try {
+      await waitForAdapterHealth({ rootDir });
+    } catch (error) {
+      lingzhuAdapterSidecar.stop?.();
+      notificationRouterSidecar?.stop?.();
+      throw error;
+    }
+  }
+
   try {
     shellRunCommand(inspection.resolvedStartCommand, {
       cwd: paths.runtimeDir,
@@ -1918,6 +2078,7 @@ export async function startMiraOpenClawRuntime({
       stdio: "inherit",
     });
   } finally {
+    lingzhuAdapterSidecar?.stop?.();
     notificationRouterSidecar?.stop?.();
   }
 

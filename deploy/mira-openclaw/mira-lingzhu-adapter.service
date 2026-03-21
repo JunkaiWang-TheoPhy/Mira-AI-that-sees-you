@@ -1,0 +1,14 @@
+[Unit]
+Description=Mira Lingzhu Live Adapter
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/mira/.mira-runtime/mira-openclaw/services/lingzhu-live-adapter
+Environment=MIRA_LINGZHU_ADAPTER_CONFIG_PATH=%h/mira/.mira-runtime/mira-openclaw/services/lingzhu-live-adapter/adapter.config.json
+ExecStart=/usr/bin/env npm run start
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

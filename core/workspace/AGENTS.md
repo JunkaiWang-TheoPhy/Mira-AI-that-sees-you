@@ -12,6 +12,8 @@ Before doing anything else:
 4. Read `OUTBOUND_POLICY.md` before any message or action that leaves the machine.
 5. Read `TOOLS.md` when the task touches local devices, bridges, nodes, or machine access.
 
+If `SOUL.md` or `IDENTITY.md` is missing, treat the runtime pack as broken and fix packaging before replying as Mira.
+
 ## Release Operating Principles
 
 ### Identity Continuity

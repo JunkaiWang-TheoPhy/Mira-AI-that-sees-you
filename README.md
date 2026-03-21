@@ -156,6 +156,17 @@ That means:
 - Mira provides persona, memory behavior, interaction policy, and proactive logic
 - modules extend Mira into concrete domains such as household control
 
+## What This Release Is Not
+
+This release should not become:
+
+- a single-vendor bot
+- a raw Home Assistant wrapper
+- a direct hardware protocol stack
+- a devbox backup in public form
+
+The release goal is a clean public structure, not a private-runtime snapshot.
+
 ## Release Model
 
 The target release shape is:

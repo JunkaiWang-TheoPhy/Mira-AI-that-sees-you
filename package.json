@@ -9,7 +9,8 @@
   "workspaces": [
     "core/plugins/lingzhu-bridge",
     "modules/home-assistant/plugin",
-    "services/notification-router"
+    "services/notification-router",
+    "services/lingzhu-live-adapter"
   ],
   "scripts": {
     "verify:release": "node scripts/verify-release.mjs",
@@ -43,6 +44,7 @@
     "deploy:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs deploy",
     "doctor:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs doctor",
     "start:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs start",
+    "start:lingzhu-live-adapter": "npm --workspace @mira/lingzhu-live-adapter run start",
     "up:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs up",
     "status:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs status",
     "down:mira-openclaw": "node scripts/mira-openclaw-runtime.mjs down",
